@@ -7,3 +7,6 @@ Thumbs.db
 
 # yerel arac ayarlari
 .claude/
+
+# yol haritasi ve notlar - depoda durmasin
+docs/

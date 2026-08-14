@@ -16,6 +16,7 @@
 
 ## Ne yapar
 
+- **Özet ekranı** — açılışta son deprem, günün rakamları ve çevrendekiler tek bakışta
 - **Harita** — depremler büyüklüğe göre boyutlanır ve renklenir, son 30 dakikadakiler yanıp söner
 - **Isı haritası** — depremlerin nerede yoğunlaştığını gösterir; fay zonları kendiliğinden ortaya çıkar
 - **Liste ve filtre** — zaman aralığı, en az büyüklük, yer/il araması, en yeni / en büyük / en yakın sıralaması
@@ -24,7 +25,11 @@
 - **Arka plan bildirimi** — uygulama kapalıyken de bildirim. Üç kural: Türkiye geneli eşiği,
   yakınımdaki depremler (yarıçap), takip ettiğim şehirler
 - **Şehir takibi** — 81 ilden seçtiklerinde deprem olduğunda haber verir
+- **Ayrıntı sayfası** — koordinat, ölçek, artçılar ve paylaşma; telefonda geri tuşuyla kapanır
 - **PWA** — ana ekrana eklenir, tam ekran açılır, internetsizken son veriyi gösterir
+
+Telefonda alt menüyle beş ekran arasında geçilir (Özet, Harita, Liste, Analiz, Ayarlar);
+bilgisayarda harita solda kalır, aynı ekranlar sağ panelde sekme olur.
 
 ## Veri nereden geliyor
 
@@ -43,27 +48,6 @@ veri görürsün. Uygulama hiçbir durumda boş kalmaz.
 `.github/workflows/update-data.yml` `scripts/fetch-quakes.mjs`'i çalıştırır: AFAD'ın
 JSON ucundan ve KOERI'nin metin listesinden son 30 günü çeker, birleştirir,
 `data/latest.json`'a yazar ve değişiklik varsa commit'ler.
-
-## Kurulum
-
-1. Bu klasörü bir GitHub reposuna push'la.
-2. **Settings → Pages** → Source: `Deploy from a branch`, branch `main`, klasör `/ (root)`.
-3. **Settings → Actions → General** → Workflow permissions: **Read and write permissions**
-   (workflow'un `data/latest.json`'ı commit'leyebilmesi için gerekli).
-4. **Actions** sekmesinden `Deprem verisini guncelle` workflow'unu bir kez elle çalıştır.
-
-Birkaç dakika içinde `https://<kullanıcı-adın>.github.io/<repo-adı>/` adresinde yayında olur.
-
-### Yerelde çalıştırma
-
-```bash
-node scripts/fetch-quakes.mjs   # veriyi çek
-node scripts/serve.mjs          # http://localhost:8099
-```
-
-`index.html`'e çift tıklayıp `file://` ile açma — service worker, `fetch` ve push
-tarayıcı tarafından engellenir. Sunucu, telefondan test edebilmen için aynı wifi'deki
-LAN adresini de yazdırır.
 
 ## Telefonda kullanma
 
@@ -102,7 +86,9 @@ js/map.js                         Leaflet haritası, işaretçiler, ısı harita
 js/list.js                        filtreleme ve deprem listesi
 js/analysis.js                    istatistik kartları ve SVG grafikler
 js/notify.js                      yerel uyarı + push aboneliği
-js/app.js                         her şeyi birbirine bağlayan katman
+js/home.js                        özet ekranı
+js/detail.js                      deprem ayrıntı sayfası
+js/app.js                         ekran yönlendirmesi ve tüm arayüz olayları
 sw.js                             service worker — önbellek + push alıcısı
 manifest.json                     PWA tanımı
 scripts/fetch-quakes.mjs          AFAD + KOERI çekici, bağımlılıksız Node
@@ -111,15 +97,10 @@ worker/                           push sunucusu (Supabase Edge Function) — ken
 .github/workflows/update-data.yml 5 dakikada bir çalışan güncelleme işi
 data/latest.json                  üretilen veri (workflow yazar)
 icons/                            uygulama simgesi (192 ve 512) — logo burada
-docs/yol-haritasi.md              planlanan bölümler
 ```
 
 Modüller birbirini doğrudan çağırmak yerine `state.js` üzerindeki olay yolunu kullanır
 (`emit` / `on`), böylece harita listeyi, liste haritayı import etmek zorunda kalmaz.
-
-## Yol haritası
-
-Planlanan bölümler ve öncelik sırası: [docs/yol-haritasi.md](docs/yol-haritasi.md)
 
 ## Sınırlar
 

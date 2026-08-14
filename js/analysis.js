@@ -203,7 +203,7 @@ function aftershockCard(list, main) {
 /* --------------------------------------------------------------- disari */
 
 export function renderAnalysis(list) {
-  const pane = $('#tab-analysis');
+  const pane = $('#scr-analysis');
   pane.textContent = '';
 
   if (!list.length) {

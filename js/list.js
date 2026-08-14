@@ -3,7 +3,7 @@
  */
 
 import { $, el, ago, fold, distKm } from './util.js';
-import { magColor } from './config.js';
+import { magColor, DESKTOP_MIN } from './config.js';
 import { state, emit } from './state.js';
 
 /** Aktif filtrelerden gecen depremler, secili siralamayla */
@@ -31,7 +31,12 @@ export function filtered() {
   return out;
 }
 
-/** Bir depremin liste satiri — hem listede hem "son deprem" kartinda kullanilir */
+/**
+  * Bir depremin liste satiri — hem listede hem ozet ekraninda kullanilir.
+  *
+  * Dokunusun ne yaptigi ekrana gore degisir: masaustunde harita zaten yanda
+  * durdugu icin isaretciye gidilir, telefonda ayrinti sayfasi acilir.
+  */
 export function quakeRow(q, { selected = false } = {}) {
   const row = el('button', 'qitem' + (selected ? ' sel' : ''));
   row.dataset.id = q.id;
@@ -46,8 +51,17 @@ export function quakeRow(q, { selected = false } = {}) {
   if (state.me) bits.push(`${Math.round(distKm(state.me.lat, state.me.lon, q.lat, q.lon))} km uzakta`);
   body.append(el('div', 'qsub', bits.join(' · ')));
 
-  row.append(mag, body);
-  row.onclick = () => emit('quake:selected', q.id);
+  const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  chevron.setAttribute('viewBox', '0 0 24 24');
+  chevron.setAttribute('class', 'qchev');
+  const tip = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  tip.setAttribute('d', 'M9 5l7 7-7 7');
+  chevron.append(tip);
+
+  row.append(mag, body, chevron);
+  row.onclick = () => emit(
+    window.innerWidth >= DESKTOP_MIN ? 'quake:selected' : 'quake:detail', q.id,
+  );
   return row;
 }
 

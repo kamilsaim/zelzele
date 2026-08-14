@@ -75,7 +75,8 @@ function popupHtml(q) {
     <div class="pop-row"><span>Ölçek</span><b>${escapeHtml(q.magType)}</b></div>
     <div class="pop-row"><span>Koordinat</span><b>${q.lat.toFixed(4)}, ${q.lon.toFixed(4)}</b></div>
     ${dist}
-    <div class="pop-src">Kaynak: ${escapeHtml(srcs)} · ${ago(q.time)}</div>`;
+    <div class="pop-src">Kaynak: ${escapeHtml(srcs)} · ${ago(q.time)}</div>
+    <button class="pop-more">Ayrıntı</button>`;
 }
 
 /* ------------------------------------------------------------ isaretciler */
@@ -105,6 +106,11 @@ export function drawQuakes(list) {
 
     marker.bindPopup(() => popupHtml(q), { autoPanPadding: [24, 24] });
     marker.on('click', () => emit('quake:selected', q.id));
+    // Baloncuk hizli bakis; tam kayit icin ayrinti sayfasi
+    marker.on('popupopen', (e) => {
+      const more = e.popup.getElement()?.querySelector('.pop-more');
+      if (more) more.onclick = () => emit('quake:detail', q.id);
+    });
     marker.addTo(markerLayer);
     markerById.set(q.id, marker);
   }

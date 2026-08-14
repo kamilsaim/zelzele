@@ -13,10 +13,48 @@ import {
 } from './map.js';
 import { filtered, renderList, highlightRow } from './list.js';
 import { renderAnalysis } from './analysis.js';
+import { renderHome } from './home.js';
+import { showDetail, hideDetail, initDetail } from './detail.js';
 import {
   alertNew, beep, ensurePermission, subscribePush, unsubscribePush,
   syncPushRules, sendTestPush, pushBlocker, pushSupported,
 } from './notify.js';
+
+/* ======================================================================
+   Ekranlar
+   ====================================================================== */
+
+/** Masaustunde harita hep gorunur oldugu icin ayri bir "harita" ekrani yok */
+const SCREENS = ['home', 'map', 'list', 'analysis', 'settings'];
+const PANEL_SCREENS = ['home', 'list', 'analysis', 'settings'];
+
+let screen = 'home';
+
+function isDesktop() {
+  return window.innerWidth >= DESKTOP_MIN;
+}
+
+function showScreen(name) {
+  if (!SCREENS.includes(name)) return;
+  // Masaustunde harita sekmesi anlamsiz; panelde ozete dus
+  if (name === 'map' && isDesktop()) name = 'home';
+
+  screen = name;
+  document.body.dataset.screen = name;
+
+  for (const pane of PANEL_SCREENS) {
+    $(`#scr-${pane}`).classList.toggle('hide', pane !== name);
+  }
+  for (const btn of $$('#bottomnav button, .tabs button')) {
+    btn.classList.toggle('on', btn.dataset.screen === name);
+  }
+
+  if (name === 'home') renderHome();
+  if (name === 'analysis') renderAnalysis(filtered());
+  if (name === 'map') setTimeout(() => getMap().invalidateSize(), 60);
+
+  store.set('screen', name);
+}
 
 /* ======================================================================
    Cizim
@@ -26,13 +64,14 @@ function render() {
   const list = filtered();
   drawQuakes(list);
   renderList(list);
-  if (!$('#tab-analysis').classList.contains('hide')) renderAnalysis(list);
+  if (screen === 'analysis') renderAnalysis(list);
+  if (screen === 'home') renderHome();
 }
 
 /** Filtre degistiginde listeyi bastan goster */
 function renderFromFilters() {
   render();
-  $('#tab-list').scrollTop = 0;
+  $('#scr-list').scrollTop = 0;
 }
 
 /* ======================================================================
@@ -115,21 +154,11 @@ async function refresh({ quiet = false } = {}) {
 
   if (fresh.length) {
     const alerted = alertNew(fresh);
-    if (alerted) focusQuake(alerted, 8);
+    if (alerted) {
+      if (!isDesktop()) showScreen('map');
+      focusQuake(alerted, 8);
+    }
   }
-}
-
-/* ======================================================================
-   Sekmeler ve panel
-   ====================================================================== */
-
-function showPanel(name) {
-  for (const btn of $$('.tabs button')) btn.classList.toggle('on', btn.dataset.tab === name);
-  for (const tab of ['list', 'analysis', 'settings']) {
-    $(`#tab-${tab}`).classList.toggle('hide', tab !== name);
-  }
-  if (name === 'analysis') renderAnalysis(filtered());
-  if (window.innerWidth < DESKTOP_MIN) $('#panel').classList.remove('min');
 }
 
 /* ======================================================================
@@ -168,17 +197,15 @@ function bindSwitch(sel, key, onChange) {
 function bindSlider(sel, outSel, key, { decimals = 0, onDone } = {}) {
   const input = $(sel);
   const out = $(outSel);
-  const paint = () => { out.textContent = Number(settings[key] ?? state[key]).toFixed(decimals); };
-  input.value = settings[key] ?? state[key];
+  const paint = () => { out.textContent = Number(settings[key]).toFixed(decimals); };
+  input.value = settings[key];
   paint();
 
   input.oninput = () => {
-    const value = Number(input.value);
-    if (key in settings) setSetting(key, value); else setFilter(key, value);
+    setSetting(key, Number(input.value));
     paint();
   };
   if (onDone) input.onchange = onDone;
-  return { paint, input };
 }
 
 /* ======================================================================
@@ -258,51 +285,6 @@ function locate() {
 }
 
 /* ======================================================================
-   Mobil alt panel
-   ====================================================================== */
-
-function initSheet() {
-  const panel = $('#panel');
-  const grip = $('#grip');
-  let startY = 0, startH = 0, dragging = false;
-  const height = () => panel.getBoundingClientRect().height;
-
-  grip.addEventListener('pointerdown', (e) => {
-    if (window.innerWidth >= DESKTOP_MIN) return;
-    dragging = true;
-    startY = e.clientY;
-    startH = height();
-    panel.style.transition = 'none';
-    grip.setPointerCapture(e.pointerId);
-  });
-
-  grip.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    const h = Math.min(window.innerHeight * 0.92, Math.max(52, startH - (e.clientY - startY)));
-    panel.style.height = `${h}px`;
-  });
-
-  grip.addEventListener('pointerup', () => {
-    if (!dragging) return;
-    dragging = false;
-    panel.style.transition = '';
-    const ratio = height() / window.innerHeight;
-    panel.style.height = '';
-    panel.classList.remove('min', 'full');
-    if (ratio < 0.22) panel.classList.add('min');
-    else if (ratio > 0.66) panel.classList.add('full');
-    setTimeout(() => getMap().invalidateSize(), 300);
-  });
-
-  grip.addEventListener('click', () => {
-    if (window.innerWidth >= DESKTOP_MIN) return;
-    panel.classList.toggle('full');
-    panel.classList.remove('min');
-    setTimeout(() => getMap().invalidateSize(), 300);
-  });
-}
-
-/* ======================================================================
    Kurulum
    ====================================================================== */
 
@@ -314,9 +296,9 @@ function applyTheme(theme) {
 }
 
 let autoTimer = null;
-function setupAutoRefresh(on_) {
+function setupAutoRefresh(enabled) {
   clearInterval(autoTimer);
-  if (on_) {
+  if (enabled) {
     autoTimer = setInterval(() => {
       if (!document.hidden) refresh({ quiet: true });
     }, REFRESH_MS);
@@ -324,8 +306,10 @@ function setupAutoRefresh(on_) {
 }
 
 function wireEvents() {
-  // -- sekmeler
-  for (const btn of $$('.tabs button')) btn.onclick = () => showPanel(btn.dataset.tab);
+  // -- gezinme (alt menü ve masaüstü sekmeleri aynı veriyi kullanır)
+  for (const btn of $$('#bottomnav button, .tabs button')) {
+    btn.onclick = () => showScreen(btn.dataset.screen);
+  }
 
   // -- zaman araligi
   $('#rangeChips').onclick = (e) => {
@@ -357,22 +341,23 @@ function wireEvents() {
   };
 
   // -- mesafe filtresi
-  $('#maxKm').onchange = (e) => {
-    const km = Number(e.target.value);
+  const maxKm = $('#maxKm');
+  maxKm.value = state.maxKm;
+  maxKm.onchange = () => {
+    const km = Number(maxKm.value);
     if (km > 0 && !state.me) {
-      toast('Önce konum iznini ver (haritadaki hedef simgesi).');
-      e.target.value = state.maxKm;
+      toast('Önce konum iznini ver.');
+      maxKm.value = state.maxKm;
       return;
     }
     setFilter('maxKm', km);
     renderFromFilters();
   };
-  $('#maxKm').value = state.maxKm;
 
   // -- siralama
   $('#sortBy').onchange = (e) => {
     if (e.target.value === 'dist' && !state.me) {
-      toast('Önce konum iznini ver (haritadaki hedef simgesi).');
+      toast('Önce konum iznini ver.');
       e.target.value = state.sortBy;
       return;
     }
@@ -400,14 +385,14 @@ function wireEvents() {
   };
 
   // -- yerel uyari ayarlari
-  bindSwitch('#swNotify', 'notify', async (on_) => (on_ ? ensurePermission() : true));
-  bindSwitch('#swSound', 'sound', (on_) => { if (on_) beep(); return true; });
-  bindSwitch('#swAuto', 'auto', (on_) => { setupAutoRefresh(on_); return true; });
+  bindSwitch('#swNotify', 'notify', async (want) => (want ? ensurePermission() : true));
+  bindSwitch('#swSound', 'sound', (want) => { if (want) beep(); return true; });
+  bindSwitch('#swAuto', 'auto', (want) => { setupAutoRefresh(want); return true; });
   bindSlider('#notifyMag', '#notifyMagOut', 'notifyMag', { decimals: 1 });
 
   // -- push
-  bindSwitch('#swPush', 'push', async (on_) => {
-    if (!on_) {
+  bindSwitch('#swPush', 'push', async (want) => {
+    if (!want) {
       await unsubscribePush();
       applyMe();
       toast('Arka plan bildirimleri kapatıldı.');
@@ -442,7 +427,7 @@ function wireEvents() {
       toast(`Gönderilemedi: ${err.message}`, true);
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Deneme bildirimi gönder';
+      btn.textContent = 'Deneme gönder';
     }
   };
 
@@ -466,14 +451,21 @@ function wireEvents() {
     const q = state.quakes.find((x) => x.id === id);
     if (!q) return;
     state.selected = id;
+    hideDetail();
+    if (!isDesktop()) showScreen('map');
     focusQuake(q, 9);
     highlightRow(id);
   });
 
+  on('quake:detail', (id) => showDetail(id));
+
+  on('screen:go', (name) => showScreen(name));
+  on('locate:request', locate);
+
   on('filter:query', (name) => {
     $('#q').value = name;
     state.query = name;
-    showPanel('list');
+    showScreen('list');
     renderFromFilters();
   });
 
@@ -483,12 +475,21 @@ function wireEvents() {
   });
   window.addEventListener('online', () => refresh({ quiet: true }));
 
+  // Masaustune gecildiginde "harita" ekrani anlamini yitirir
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (screen === 'map' && isDesktop()) showScreen('home');
+    }, 160);
+  });
+
   // -- klavye kisayollari (masaustu)
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, select, textarea')) return;
     if (e.key === 'r') refresh();
     if (e.key === 'f') fitTurkey();
-    if (e.key === '/') { e.preventDefault(); showPanel('list'); $('#q').focus(); }
+    if (e.key === '/') { e.preventDefault(); showScreen('list'); $('#q').focus(); }
   });
 }
 
@@ -497,7 +498,7 @@ function start() {
   applyTheme(store.get('theme',
     matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
   renderLegend();
-  initSheet();
+  initDetail();
   initCityPicker();
   wireEvents();
 
@@ -515,19 +516,21 @@ function start() {
     if (!pushSupported()) $('#swPush').classList.add('disabled');
   }
 
+  showScreen(store.get('screen', 'home'));
   setupAutoRefresh(settings.auto);
   refresh();
 
   // "3 dk once" etiketleri kendiliginden yaslansin
   setInterval(() => {
-    if (!$('#tab-list').classList.contains('hide')) renderList(filtered());
+    if (screen === 'list') renderList(filtered());
+    if (screen === 'home') renderHome();
   }, 60000);
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
     // Bildirime tiklaninca ilgili depreme git
     navigator.serviceWorker.addEventListener('message', (e) => {
-      if (e.data?.type === 'focus-quake' && e.data.id) emit('quake:selected', e.data.id);
+      if (e.data?.type === 'focus-quake' && e.data.id) emit('quake:detail', e.data.id);
     });
   }
 }
