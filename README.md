@@ -1,0 +1,2 @@
+# zelzele
+deprem takip ekranı
