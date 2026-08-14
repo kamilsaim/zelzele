@@ -40,6 +40,9 @@
   --panel-w:392px;
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
+  /* Ikonlari ev gostergesinin hemen ustune indirmek icin guvenli alanin bir
+     kismini bos dolgu yerine dugme yuksekligine katiyoruz */
+  --icon-drop:min(22px, var(--safe-b));
   --nav-h:56px;
 }
 html[data-theme="light"]{
@@ -364,11 +367,12 @@ select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
     position:fixed;left:0;right:0;bottom:0;
     display:flex;z-index:1500;
     background:var(--panel);border-top:1px solid var(--line);
-    /* Ana ekran göstergesi alanı menü renginde kalsın */
-    padding-bottom:var(--safe-b);
+    /* Ana ekran göstergesi alanı menü renginde kalsın; ikonlara ayrılan pay
+       düşüldükten sonra kalanı saf dolgu olarak bırakıyoruz */
+    padding-bottom:calc(var(--safe-b) - var(--icon-drop));
   }
   #bottomnav button{
-    flex:1;height:var(--nav-h);display:flex;flex-direction:column;
+    flex:1;height:calc(var(--nav-h) + var(--icon-drop));display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:3px;
     color:var(--fg-mute);font-size:10px;font-weight:600;
     position:relative;transition:color .15s;
