@@ -1,7 +1,9 @@
-# Deprem Haritası — Türkiye
+# Zelzele
 
 Türkiye'deki depremleri harita üzerinde takip eden, telefonda ve bilgisayarda çalışan
-tek sayfalık bir uygulama. Veri AFAD ve Kandilli Rasathanesi'nden (KOERI) gelir.
+bir uygulama. Veri AFAD ve Kandilli Rasathanesi'nden (KOERI) gelir.
+
+**Yayında:** https://kamilsaim.github.io/zelzele/
 
 ## Ne yapar
 
@@ -10,7 +12,9 @@ tek sayfalık bir uygulama. Veri AFAD ve Kandilli Rasathanesi'nden (KOERI) gelir
 - **Liste ve filtre** — zaman aralığı, en az büyüklük, yer/il araması, en yeni / en büyük / en yakın sıralaması
 - **Analiz** — zaman dağılımı, en sık deprem olan iller, büyüklük ve derinlik dağılımı, en büyük depremin artçıları
 - **Konum** — izin verirsen depremlerin sana uzaklığını hesaplar
-- **Bildirim** — belirlediğin büyüklüğün üstünde yeni deprem olduğunda uyarır (sayfa açıkken)
+- **Arka plan bildirimi** — uygulama kapalıyken de bildirim. Üç kural: Türkiye geneli eşiği,
+  yakınımdaki depremler (yarıçap), takip ettiğim şehirler
+- **Şehir takibi** — 81 ilden seçtiklerinde deprem olduğunda haber verir
 - **PWA** — ana ekrana eklenir, tam ekran açılır, internetsizken son veriyi gösterir
 
 ## Veri nereden geliyor
@@ -45,16 +49,18 @@ Birkaç dakika içinde `https://<kullanıcı-adın>.github.io/<repo-adı>/` adre
 
 ```bash
 node scripts/fetch-quakes.mjs   # veriyi çek
-npx serve .                     # http://localhost:3000
+node scripts/serve.mjs          # http://localhost:8099
 ```
 
-`file://` ile açma — service worker ve `fetch` çalışmaz.
+`index.html`'e çift tıklayıp `file://` ile açma — service worker, `fetch` ve push
+tarayıcı tarafından engellenir. Sunucu, telefondan test edebilmen için aynı wifi'deki
+LAN adresini de yazdırır.
 
 ## Telefonda kullanma
 
-**iOS:** Safari'de siteyi aç → Paylaş → *Ana Ekrana Ekle*. Uygulama gibi tam ekran açılır.
-iOS'ta arka plan bildirimi için sitenin ana ekrana eklenmiş olması ve bir push sunucusu
-gerekir; şu an bildirimler yalnızca uygulama açıkken çalışır.
+**iOS:** Safari'de siteyi aç → Paylaş → *Ana Ekrana Ekle*. Arka plan bildirimi iOS'ta
+**yalnızca** böyle kurulmuş uygulamada çalışır — bu Apple'ın şartı, aşılamıyor.
+Uygulama bunu tespit edip Ayarlar sekmesinde açıklıyor.
 
 **Android:** Chrome'da siteyi aç → *Ana ekrana ekle* (veya Ayarlar sekmesindeki **Ekle**
 düğmesi).
@@ -78,13 +84,27 @@ uyarı verip geçer. Çizgi özelliklerinde `name` veya `FAY_ADI` alanı varsa p
 ## Dosyalar
 
 ```
-index.html                        uygulamanın tamamı (harita, liste, analiz, ayarlar)
-sw.js                             service worker — kabuk önbellekte, veri ağdan
+index.html                        işaretleme ve stiller
+js/config.js                      sabitler (renkler, eşikler, push ucu, il listesi)
+js/util.js                        genel yardımcılar (zaman, mesafe, depo, toast)
+js/state.js                       paylaşılan durum ve modüller arası olay yolu
+js/data.js                        üç kaynağı deneyip birleştiren veri katmanı
+js/map.js                         Leaflet haritası, işaretçiler, ısı haritası, fay katmanı
+js/list.js                        filtreleme ve deprem listesi
+js/analysis.js                    istatistik kartları ve SVG grafikler
+js/notify.js                      yerel uyarı + push aboneliği
+js/app.js                         her şeyi birbirine bağlayan katman
+sw.js                             service worker — önbellek + push alıcısı
 manifest.json                     PWA tanımı
 scripts/fetch-quakes.mjs          AFAD + KOERI çekici, bağımlılıksız Node
+scripts/serve.mjs                 geliştirme sunucusu
+worker/                           push sunucusu (Supabase Edge Function) — kendi README'si var
 .github/workflows/update-data.yml 5 dakikada bir çalışan güncelleme işi
 data/latest.json                  üretilen veri (workflow yazar)
 ```
+
+Modüller birbirini doğrudan çağırmak yerine `state.js` üzerindeki olay yolunu kullanır
+(`emit` / `on`), böylece harita listeyi, liste haritayı import etmek zorunda kalmaz.
 
 ## Sınırlar
 
@@ -94,7 +114,13 @@ data/latest.json                  üretilen veri (workflow yazar)
   AFAD ve depo verisiyle çalışmaya devam eder.
 - İlk yayınlanan büyüklükler kurumlar tarafından sonradan revize edilir.
 
+## Test
+
+```bash
+node worker/webpush.test.mjs   # push şifrelemesi ve VAPID imzası
+```
+
 ## Uyarı
 
-Bu uygulama resmi bir kaynak değildir. Acil durumlarda AFAD'ın resmi duyurularını takip edin.
+Zelzele resmi bir kaynak değildir. Acil durumlarda AFAD'ın resmi duyurularını takip edin.
 Hiçbir deprem tahmini yapmaz — deprem tahmini bilimsel olarak mümkün değildir.

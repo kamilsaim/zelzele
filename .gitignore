@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 Thumbs.db
+
+# VAPID ozel anahtari - asla commitlenmez
+.vapid.json

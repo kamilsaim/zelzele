@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
-<title>Deprem Haritası — Türkiye</title>
-<meta name="description" content="Türkiye'deki depremleri harita üzerinde anlık takip et. AFAD ve Kandilli verisi.">
+<title>Zelzele — Türkiye Deprem Haritası</title>
+<meta name="description" content="Türkiye'deki depremleri harita üzerinde anlık takip et. AFAD ve Kandilli verisi, konumuna göre bildirim.">
 <meta name="theme-color" content="#0b1120">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="logo.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Deprem">
+<meta name="apple-mobile-web-app-title" content="Zelzele">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -21,7 +21,7 @@
   --bg:#0b1120; --panel:#111a2e; --panel-2:#16213b; --line:#243252;
   --fg:#e8eefc; --fg-dim:#9fb0d0; --fg-mute:#6b7c9c;
   --accent:#38bdf8; --danger:#ef4444; --ok:#4ade80;
-  --sheet-h:46vh;
+  --sheet-h:46vh; --panel-w:390px;
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
 }
@@ -39,6 +39,7 @@ body{
 button,input,select{font:inherit;color:inherit}
 button{background:none;border:0;cursor:pointer}
 .hide{display:none !important}
+.disabled{opacity:.45;pointer-events:none}
 
 /* ------------------------------------------------------------ iskelet */
 #app{display:flex;flex-direction:column;height:100dvh}
@@ -50,16 +51,16 @@ header{
   flex:none;z-index:1200;
 }
 header .logo{width:28px;height:28px;border-radius:7px;flex:none;object-fit:cover}
-header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:-.01em;white-space:nowrap}
-.status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-mute);margin-left:auto}
+header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-mute);
+  margin-left:auto;min-width:0}
+.status span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
 .dot.stale{background:#facc15}.dot.err{background:var(--danger)}
 .dot.live{box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:pulse 2.4s infinite}
 @keyframes pulse{70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
-.iconbtn{
-  width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
-  color:var(--fg-dim);flex:none;
-}
+.iconbtn{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  color:var(--fg-dim);flex:none}
 .iconbtn:hover{background:var(--panel-2);color:var(--fg)}
 .iconbtn.on{color:var(--accent);background:var(--panel-2)}
 .iconbtn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;
@@ -68,13 +69,10 @@ header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:-.01em;white-sp
 main{flex:1;position:relative;min-height:0;display:flex}
 
 /* ------------------------------------------------------------- harita */
-/* Masaustunde harita panelin soluyla sinirli; mobilde tam ekran, panel uzerine biner */
-#map{position:absolute;inset:0 390px 0 0;background:var(--bg);z-index:0}
-@media (max-width:860px){#map{right:0}}
+#map{position:absolute;inset:0 var(--panel-w) 0 0;background:var(--bg);z-index:0}
 .leaflet-container{background:var(--bg);font:inherit}
 .leaflet-control-attribution{
-  background:rgba(11,17,32,.72)!important;color:var(--fg-mute)!important;font-size:10px!important;
-}
+  background:rgba(11,17,32,.72)!important;color:var(--fg-mute)!important;font-size:10px!important}
 html[data-theme="light"] .leaflet-control-attribution{background:rgba(255,255,255,.8)!important}
 .leaflet-control-attribution a{color:var(--fg-dim)!important}
 .leaflet-bar a{background:var(--panel)!important;color:var(--fg)!important;border-color:var(--line)!important}
@@ -85,9 +83,8 @@ html[data-theme="light"] .leaflet-control-attribution{background:rgba(255,255,25
 
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{
   background:var(--panel);color:var(--fg);border:1px solid var(--line);
-  box-shadow:0 12px 32px rgba(0,0,0,.45);
-}
-.leaflet-popup-content{margin:12px 14px;min-width:206px}
+  box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.leaflet-popup-content{margin:12px 14px;min-width:212px}
 .leaflet-popup-close-button{color:var(--fg-mute)!important}
 .pop-mag{font-size:26px;font-weight:700;line-height:1;letter-spacing:-.02em}
 .pop-place{font-weight:600;margin:7px 0 2px;font-size:14px}
@@ -100,73 +97,64 @@ html[data-theme="light"] .leaflet-control-attribution{background:rgba(255,255,25
 /* --------------------------------------------------- harita ustu kontrol */
 .map-ui{position:absolute;z-index:800;pointer-events:none}
 .map-ui>*{pointer-events:auto}
-.mu-top{top:10px;left:10px;right:400px;display:flex;gap:8px;align-items:flex-start}
+.mu-top{top:10px;left:10px;right:calc(var(--panel-w) + 10px);display:flex;gap:8px}
 .chipbar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px}
 .chipbar::-webkit-scrollbar{display:none}
 .chip{
   padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:550;white-space:nowrap;
   background:var(--panel);border:1px solid var(--line);color:var(--fg-dim);
-  box-shadow:0 2px 10px rgba(0,0,0,.28);
-}
+  box-shadow:0 2px 10px rgba(0,0,0,.28)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#04121f}
-.mu-right{position:absolute;right:400px;top:56px;display:flex;flex-direction:column;gap:7px}
+.mu-right{right:calc(var(--panel-w) + 10px);top:56px;display:flex;flex-direction:column;gap:7px}
 .mu-right .iconbtn{background:var(--panel);border:1px solid var(--line);
   box-shadow:0 2px 10px rgba(0,0,0,.28)}
 
 .legend{
-  position:absolute;left:10px;bottom:calc(10px + var(--safe-b));
+  position:absolute;left:10px;bottom:calc(10px + var(--safe-b));z-index:800;
   background:var(--panel);border:1px solid var(--line);border-radius:11px;
   padding:9px 11px;font-size:11px;color:var(--fg-dim);
-  box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:150px;
-}
+  box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:150px}
 .legend .row{display:flex;align-items:center;gap:7px;padding:1.5px 0}
 .legend i{width:10px;height:10px;border-radius:50%;flex:none}
 
 /* -------------------------------------------------------------- panel */
 #panel{
   background:var(--panel);border-left:1px solid var(--line);
-  display:flex;flex-direction:column;flex:none;width:390px;z-index:900;position:relative;
-  margin-left:auto; /* harita mutlak konumlu, panel sagda kalsin */
-}
+  display:flex;flex-direction:column;flex:none;width:var(--panel-w);
+  z-index:900;position:relative;margin-left:auto}
 .tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
-.tabs button{
-  flex:1;padding:12px 8px;font-size:13px;font-weight:600;color:var(--fg-mute);
-  border-bottom:2px solid transparent;
-}
+.tabs button{flex:1;padding:12px 8px;font-size:13px;font-weight:600;color:var(--fg-mute);
+  border-bottom:2px solid transparent}
 .tabs button.on{color:var(--fg);border-bottom-color:var(--accent)}
 .tabpane{flex:1;overflow-y:auto;overscroll-behavior:contain;
   padding-bottom:calc(14px + var(--safe-b))}
 
 /* filtreler */
 .filters{padding:12px 13px;border-bottom:1px solid var(--line);display:grid;gap:10px}
-.search{
-  display:flex;align-items:center;gap:8px;background:var(--panel-2);
-  border:1px solid var(--line);border-radius:10px;padding:0 10px;
-}
+.search{display:flex;align-items:center;gap:8px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:10px;padding:0 10px}
 .search svg{width:15px;height:15px;stroke:var(--fg-mute);fill:none;stroke-width:2;flex:none}
 .search input{flex:1;background:none;border:0;outline:none;padding:9px 0;font-size:13.5px;min-width:0}
 .search input::placeholder{color:var(--fg-mute)}
 .slider{display:flex;align-items:center;gap:10px}
 .slider label{font-size:12px;color:var(--fg-dim);white-space:nowrap}
 .slider output{font-variant-numeric:tabular-nums;font-weight:650;font-size:12.5px;
-  min-width:26px;text-align:right}
+  min-width:30px;text-align:right}
 input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
+.row-inline{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--fg-dim)}
+.row-inline select{flex:1}
+select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+  padding:6px 8px;font-size:12.5px;outline:none;min-width:0}
 
 /* liste */
-.listmeta{display:flex;justify-content:space-between;align-items:center;
+.listmeta{display:flex;justify-content:space-between;align-items:center;gap:8px;
   padding:9px 13px;font-size:11.5px;color:var(--fg-mute);
   position:sticky;top:0;background:var(--panel);z-index:2;border-bottom:1px solid var(--line)}
-.listmeta select{background:var(--panel-2);border:1px solid var(--line);
-  border-radius:7px;padding:3px 6px;font-size:11.5px;outline:none}
-.qitem{
-  display:flex;align-items:center;gap:11px;padding:10px 13px;width:100%;text-align:left;
-  border-bottom:1px solid var(--line);
-}
+.qitem{display:flex;align-items:center;gap:11px;padding:10px 13px;width:100%;text-align:left;
+  border-bottom:1px solid var(--line)}
 .qitem:hover,.qitem.sel{background:var(--panel-2)}
-.qmag{
-  width:44px;height:44px;border-radius:11px;flex:none;display:grid;place-items:center;
-  font-weight:700;font-size:15.5px;color:#04121f;font-variant-numeric:tabular-nums;
-}
+.qmag{width:44px;height:44px;border-radius:11px;flex:none;display:grid;place-items:center;
+  font-weight:700;font-size:15.5px;color:#04121f;font-variant-numeric:tabular-nums}
 .qbody{min-width:0;flex:1}
 .qplace{font-size:13.5px;font-weight:560;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;letter-spacing:-.005em}
@@ -177,12 +165,13 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
 /* analiz */
 .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
   border-bottom:1px solid var(--line)}
+.stats.boxed{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:2px}
 .stat{background:var(--panel);padding:13px}
 .stat .v{font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .stat .k{font-size:11px;color:var(--fg-mute);margin-top:2px}
 .card{padding:14px 13px;border-bottom:1px solid var(--line)}
 .card h3{margin:0 0 3px;font-size:13px;font-weight:640}
-.card p.note{margin:0 0 11px;font-size:11px;color:var(--fg-mute)}
+.card p.note,p.note{margin:0 0 11px;font-size:11.5px;color:var(--fg-mute);line-height:1.5}
 .card svg{display:block;width:100%;overflow:visible}
 .axis{display:flex;justify-content:space-between;font-size:10.5px;
   color:var(--fg-mute);margin-top:6px}
@@ -194,42 +183,56 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
 .bar .c{text-align:right;color:var(--fg-mute);font-variant-numeric:tabular-nums}
 
 /* ayarlar */
+.sechead{padding:16px 13px 7px;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--fg-mute)}
 .setting{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:12px 13px;border-bottom:1px solid var(--line)}
-.setting .lbl{font-size:13.5px}
-.setting .sub{font-size:11px;color:var(--fg-mute);margin-top:2px;max-width:230px}
+.setting .lbl{font-size:13.5px;font-weight:550}
+.setting .sub{font-size:11.5px;color:var(--fg-mute);margin-top:2px;max-width:228px;line-height:1.45}
+.setting .slider{width:140px;flex:none}
 .switch{width:42px;height:24px;border-radius:99px;background:var(--line);
-  position:relative;flex:none;transition:background .18s}
+  position:relative;flex:none;transition:background .18s;cursor:pointer}
 .switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;
   border-radius:50%;background:var(--fg);transition:transform .18s}
 .switch.on{background:var(--accent)}
 .switch.on::after{transform:translateX(18px);background:#04121f}
-.btn{
-  padding:9px 14px;border-radius:9px;background:var(--panel-2);
-  border:1px solid var(--line);font-size:13px;font-weight:550;
-}
+.btn{padding:9px 14px;border-radius:9px;background:var(--panel-2);
+  border:1px solid var(--line);font-size:13px;font-weight:550;white-space:nowrap}
+.btn:disabled{opacity:.5}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#04121f}
 .srcline{display:flex;align-items:center;gap:8px;padding:7px 13px;font-size:12px;color:var(--fg-dim)}
 .srcline .dot{width:6px;height:6px}
 
+/* sehirler */
+.citybox{padding:12px 13px;border-bottom:1px solid var(--line)}
+.cityrow{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.cityrow select{flex:1}
+#cityList{display:flex;flex-wrap:wrap;gap:6px}
+#cityList p.note{margin:0}
+.citychip{display:flex;align-items:center;gap:6px;padding:5px 9px 5px 11px;
+  border-radius:999px;background:var(--panel-2);border:1px solid var(--line);font-size:12.5px}
+.citychip .x{color:var(--fg-mute);font-size:15px;line-height:1}
+.citychip:hover{border-color:var(--danger)}
+.citychip:hover .x{color:var(--danger)}
+
 /* -------------------------------------------------------------- mobil */
 @media (max-width:860px){
   main{display:block}
+  #map{right:0}
   .mu-top{right:10px}
-  .mu-right{right:10px}
+  .mu-right{right:10px;top:auto;bottom:calc(var(--sheet-h) + 10px);transition:bottom .26s}
   #panel{
     position:absolute;left:0;right:0;bottom:0;width:auto;height:var(--sheet-h);
     border-left:0;border-top:1px solid var(--line);
     border-radius:17px 17px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.42);
-    transition:height .26s cubic-bezier(.4,0,.2,1);
-  }
+    transition:height .26s cubic-bezier(.4,0,.2,1)}
   #panel.full{height:calc(100dvh - 52px - var(--safe-t))}
   #panel.min{height:calc(52px + var(--safe-b))}
-  .grip{padding:7px 0 3px;display:flex;justify-content:center;flex:none;touch-action:none;cursor:grab}
+  .grip{padding:7px 0 3px;display:flex;justify-content:center;flex:none;
+    touch-action:none;cursor:grab}
   .grip::before{content:"";width:38px;height:4px;border-radius:99px;background:var(--line)}
   .legend{bottom:calc(var(--sheet-h) + 10px);transition:bottom .26s}
-  .mu-right{top:auto;bottom:calc(var(--sheet-h) + 10px);transition:bottom .26s}
-  .stats{grid-template-columns:repeat(2,1fr)}
+  .setting .sub{max-width:none}
 }
 @media (min-width:861px){.grip{display:none}}
 
@@ -239,8 +242,7 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
   top:calc(10px + var(--safe-t));z-index:3000;
   background:var(--panel);border:1px solid var(--line);border-radius:11px;
   padding:10px 15px;font-size:13px;box-shadow:0 10px 34px rgba(0,0,0,.45);
-  transition:transform .3s cubic-bezier(.2,1.2,.4,1);max-width:92vw;
-}
+  transition:transform .3s cubic-bezier(.2,1.2,.4,1);max-width:92vw;text-align:center}
 #toast.show{transform:translateX(-50%) translateY(0)}
 #toast.alert{border-color:var(--danger)}
 </style>
@@ -250,12 +252,12 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
 <div id="app">
   <header>
     <img class="logo" src="logo.png" alt="">
-    <h1>Deprem Haritası</h1>
+    <h1>Zelzele</h1>
     <div class="status">
       <span class="dot" id="statusDot"></span>
       <span id="statusText">yükleniyor…</span>
     </div>
-    <button class="iconbtn" id="btnRefresh" title="Yenile" aria-label="Yenile">
+    <button class="iconbtn" id="btnRefresh" title="Yenile (R)" aria-label="Yenile">
       <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
     </button>
     <button class="iconbtn" id="btnTheme" title="Tema" aria-label="Tema değiştir">
@@ -286,7 +288,7 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
       <button class="iconbtn" id="btnFaults" title="Fay hatları">
         <svg viewBox="0 0 24 24"><path d="M2 14l5-3 4 3 4-6 3 4 4-2"/><path d="M2 20l5-3 4 3 4-6 3 4 4-2"/></svg>
       </button>
-      <button class="iconbtn" id="btnFit" title="Türkiye'ye sığdır">
+      <button class="iconbtn" id="btnFit" title="Türkiye'ye sığdır (F)">
         <svg viewBox="0 0 24 24"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>
       </button>
     </div>
@@ -301,7 +303,7 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
         <button data-tab="settings">Ayarlar</button>
       </div>
 
-      <!-- ---------------------------------------------------- LİSTE -->
+      <!-- ==================================================== LİSTE -->
       <div class="tabpane" id="tab-list">
         <div class="filters">
           <div class="search">
@@ -312,6 +314,16 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
             <label for="minMag">En az büyüklük</label>
             <input id="minMag" type="range" min="0" max="6" step="0.5" value="0">
             <output id="minMagOut">0</output>
+          </div>
+          <div class="row-inline" id="distFilterRow">
+            <label for="maxKm">Bana uzaklık</label>
+            <select id="maxKm">
+              <option value="0">Tüm Türkiye</option>
+              <option value="50">50 km içinde</option>
+              <option value="100">100 km içinde</option>
+              <option value="250">250 km içinde</option>
+              <option value="500">500 km içinde</option>
+            </select>
           </div>
         </div>
         <div class="listmeta">
@@ -325,24 +337,78 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
         <div id="list"></div>
       </div>
 
-      <!-- ---------------------------------------------------- ANALİZ -->
+      <!-- =================================================== ANALİZ -->
       <div class="tabpane hide" id="tab-analysis"></div>
 
-      <!-- ---------------------------------------------------- AYARLAR -->
+      <!-- ================================================== AYARLAR -->
       <div class="tabpane hide" id="tab-settings">
+
+        <div class="sechead">Arka plan bildirimi</div>
         <div class="setting">
           <div>
-            <div class="lbl">Bildirimler</div>
-            <div class="sub">Seçtiğin büyüklüğün üstünde yeni deprem olduğunda uyarır. Sayfa açıkken çalışır.</div>
+            <div class="lbl">Uygulama kapalıyken bildir</div>
+            <div class="sub">Cihazın sunucuya kaydedilir; deprem olduğunda Zelzele açık olmasa da bildirim gelir.</div>
+            <p class="note hide" id="pushNote" style="margin:6px 0 0"></p>
           </div>
-          <div class="switch" id="swNotify" role="switch" tabindex="0"></div>
+          <div class="switch" id="swPush" role="switch" tabindex="0" aria-label="Arka plan bildirimi"></div>
         </div>
         <div class="setting">
           <div>
-            <div class="lbl">Bildirim eşiği</div>
-            <div class="sub">Bu büyüklüğün altındaki depremler için uyarı gelmez.</div>
+            <div class="lbl">Türkiye geneli eşiği</div>
+            <div class="sub">Bu büyüklüğün üstündeki her deprem, nerede olursa olsun bildirilir.</div>
           </div>
-          <div class="slider" style="width:132px">
+          <div class="slider">
+            <input id="pushMag" type="range" min="2" max="6" step="0.5" value="4">
+            <output id="pushMagOut">4.0</output>
+          </div>
+        </div>
+        <div class="setting" id="pushKmRow">
+          <div>
+            <div class="lbl">Yakınımdaki depremler</div>
+            <div class="sub">Bu yarıçap içinde 3.0 üstü her deprem bildirilir. Konum izni gerekir.</div>
+          </div>
+          <div class="slider">
+            <input id="pushKm" type="range" min="0" max="500" step="25" value="200">
+            <output id="pushKmOut">200</output>
+          </div>
+        </div>
+        <div class="setting">
+          <div>
+            <div class="lbl">Takip ettiğim şehirler</div>
+            <div class="sub">Aşağıdaki şehirlerde 3.0 üstü deprem olduğunda bildirim gönderilir.</div>
+          </div>
+          <div class="switch" id="swPushCities" role="switch" tabindex="0" aria-label="Şehir bildirimleri"></div>
+        </div>
+        <div class="citybox">
+          <div class="cityrow">
+            <select id="cityPick" aria-label="Şehir ekle">
+              <option value="">Şehir ekle…</option>
+            </select>
+          </div>
+          <div id="cityList"></div>
+        </div>
+        <div class="setting">
+          <div>
+            <div class="lbl">Çalışıyor mu?</div>
+            <div class="sub">Sunucudan bu cihaza deneme bildirimi ister.</div>
+          </div>
+          <button class="btn" id="btnTestPush">Deneme bildirimi gönder</button>
+        </div>
+
+        <div class="sechead">Uygulama açıkken</div>
+        <div class="setting">
+          <div>
+            <div class="lbl">Ekran uyarısı</div>
+            <div class="sub">Sistem bildirimi olarak da gösterilir.</div>
+          </div>
+          <div class="switch" id="swNotify" role="switch" tabindex="0" aria-label="Ekran uyarısı"></div>
+        </div>
+        <div class="setting">
+          <div>
+            <div class="lbl">Uyarı eşiği</div>
+            <div class="sub">Bu büyüklüğün altındaki depremler için uyarı verilmez.</div>
+          </div>
+          <div class="slider">
             <input id="notifyMag" type="range" min="2" max="6" step="0.5" value="4">
             <output id="notifyMagOut">4.0</output>
           </div>
@@ -350,25 +416,26 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
         <div class="setting">
           <div>
             <div class="lbl">Sesli uyarı</div>
-            <div class="sub">Bildirimle birlikte kısa bir alarm sesi çalar.</div>
+            <div class="sub">Uyarıyla birlikte kısa bir alarm sesi çalar.</div>
           </div>
-          <div class="switch" id="swSound" role="switch" tabindex="0"></div>
+          <div class="switch" id="swSound" role="switch" tabindex="0" aria-label="Sesli uyarı"></div>
         </div>
         <div class="setting">
           <div>
             <div class="lbl">Otomatik yenileme</div>
             <div class="sub">60 saniyede bir yeni veri kontrol edilir.</div>
           </div>
-          <div class="switch" id="swAuto" role="switch" tabindex="0"></div>
+          <div class="switch" id="swAuto" role="switch" tabindex="0" aria-label="Otomatik yenileme"></div>
         </div>
 
+        <div class="sechead">Veri</div>
         <div class="card">
-          <h3>Veri kaynakları</h3>
+          <h3>Kaynaklar</h3>
           <p class="note">Önce canlı uçlar denenir, ulaşılamazsa depodaki son veri kullanılır.</p>
           <div id="srcStatus"></div>
         </div>
 
-        <div class="setting" id="installRow" style="display:none">
+        <div class="setting hide" id="installRow">
           <div>
             <div class="lbl">Ana ekrana ekle</div>
             <div class="sub">Uygulama gibi tam ekran açılır, internetsizken son veriyi gösterir.</div>
@@ -379,9 +446,9 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
         <div class="card">
           <h3>Uyarı</h3>
           <p class="note" style="margin:0">
-            Bu uygulama AFAD ve Kandilli Rasathanesi'nin yayınladığı verileri gösterir; resmi bir
-            kaynak değildir. İlk yayınlanan büyüklükler sonradan revize edilebilir. Acil durumlarda
-            AFAD'ın resmi duyurularını takip edin.
+            Zelzele, AFAD ve Kandilli Rasathanesi'nin yayınladığı verileri gösterir; resmi bir
+            kaynak değildir ve erken uyarı sistemi değildir. İlk yayınlanan büyüklükler sonradan
+            revize edilebilir. Acil durumlarda AFAD'ın resmi duyurularını takip edin.
           </p>
         </div>
       </div>
@@ -394,1109 +461,6 @@ input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" crossorigin=""></script>
-
-<script>
-"use strict";
-
-/* ======================================================================
-   Sabitler
-   ====================================================================== */
-
-const TR_BOUNDS = L.latLngBounds([35.5, 25.2], [42.5, 45.2]);
-
-/** Büyüklüğe göre renk — küçükten büyüğe artan aciliyet */
-const MAG_STOPS = [
-  { min: 5.0, color: '#a21caf', label: '5.0+' },
-  { min: 4.0, color: '#ef4444', label: '4.0 – 5.0' },
-  { min: 3.0, color: '#fb923c', label: '3.0 – 4.0' },
-  { min: 2.0, color: '#facc15', label: '2.0 – 3.0' },
-  { min: -Infinity, color: '#38bdf8', label: '2.0 altı' },
-];
-
-const magColor = (m) => MAG_STOPS.find((s) => m >= s.min).color;
-
-/** Büyüklük arttıkça yarıçap hızlanarak büyüsün (enerji ~ üstel) */
-const magRadius = (m) => 3 + Math.pow(Math.max(m, 0), 2.05) * 0.72;
-
-const RECENT_MS = 30 * 60 * 1000;   // "az önce" sayılan pencere
-const REFRESH_MS = 60 * 1000;
-
-/* ======================================================================
-   Küçük yardımcılar
-   ====================================================================== */
-
-const $ = (s) => document.querySelector(s);
-const el = (tag, cls) => { const n = document.createElement(tag); if (cls) n.className = cls; return n; };
-
-const fmtTime = new Intl.DateTimeFormat('tr-TR', {
-  day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-});
-const fmtFull = new Intl.DateTimeFormat('tr-TR', {
-  dateStyle: 'medium', timeStyle: 'medium',
-});
-
-function ago(iso) {
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 60) return 'az önce';
-  if (s < 3600) return `${Math.floor(s / 60)} dk önce`;
-  if (s < 86400) return `${Math.floor(s / 3600)} sa önce`;
-  return `${Math.floor(s / 86400)} gün önce`;
-}
-
-/** İki nokta arası büyük daire mesafesi (km) */
-function distKm(a, b, c, d) {
-  const R = 6371, r = Math.PI / 180;
-  const dLat = (c - a) * r, dLon = (d - b) * r;
-  const h = Math.sin(dLat / 2) ** 2 +
-    Math.cos(a * r) * Math.cos(c * r) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-/** Türkçe arama: "Kütahya" yazmadan "kutahya" ile de bulunsun */
-function fold(s) {
-  return String(s).toLowerCase()
-    .replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g')
-    .replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c');
-}
-
-let toastTimer;
-function toast(msg, alert = false) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.classList.toggle('alert', alert);
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), alert ? 7000 : 3400);
-}
-
-const store = {
-  get(k, d) { try { const v = localStorage.getItem('deprem.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem('deprem.' + k, JSON.stringify(v)); } catch {} },
-};
-
-/* ======================================================================
-   Durum
-   ====================================================================== */
-
-const state = {
-  quakes: [],                            // birleştirilmiş tüm depremler
-  seenIds: new Set(),                    // bildirim için: daha önce görülenler
-  firstLoadDone: false,
-  hours: store.get('hours', 24),
-  minMag: store.get('minMag', 0),
-  query: '',
-  sortBy: 'time',
-  me: null,                              // {lat, lon}
-  selected: null,
-  sources: {},                           // {ad: {ok, count|error}}
-  updated: null,
-  settings: {
-    notify: store.get('notify', false),
-    notifyMag: store.get('notifyMag', 4),
-    sound: store.get('sound', true),
-    auto: store.get('auto', true),
-  },
-};
-
-/* ======================================================================
-   Veri katmanı — strateji C: canlı uçları dene, olmazsa depodaki JSON
-   ====================================================================== */
-
-/** Farklı kaynakların alanlarını tek biçime indirger */
-function normalize(raw, source) {
-  const lat = Number(raw.lat), lon = Number(raw.lon), mag = Number(raw.mag);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(mag)) return null;
-  return {
-    id: raw.id, time: raw.time, lat, lon, mag,
-    depth: Number(raw.depth) || 0,
-    magType: raw.magType || 'ML',
-    place: raw.place || '',
-    province: raw.province || '',
-    source: raw.source || source,
-    alsoIn: raw.alsoIn || [],
-  };
-}
-
-async function withTimeout(promise, ms, label) {
-  let timer;
-  const timeout = new Promise((_, rej) => {
-    timer = setTimeout(() => rej(new Error(`${label}: zaman aşımı`)), ms);
-  });
-  try { return await Promise.race([promise, timeout]); }
-  finally { clearTimeout(timer); }
-}
-
-/** 1. Depodaki JSON — aynı origin, her zaman çalışır, taban veri budur */
-async function loadRepo() {
-  const res = await fetch(`data/latest.json?t=${Date.now()}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  return {
-    updated: json.updated,
-    quakes: (json.quakes || []).map((q) => normalize(q, 'REPO')).filter(Boolean),
-  };
-}
-
-/**
- * 2. AFAD canlı ucu. CORS başlığı göndermezse tarayıcı engeller —
- *    bu beklenen bir durum, sessizce depodaki veriye düşeriz.
- */
-async function loadAfadLive() {
-  const pad = (n) => String(n).padStart(2, '0');
-  const stamp = (d) =>
-    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
-    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
-
-  const end = new Date();
-  const start = new Date(end - 36 * 3600 * 1000);
-  const url = 'https://deprem.afad.gov.tr/apiv2/event/filter' +
-    `?start=${encodeURIComponent(stamp(start))}&end=${encodeURIComponent(stamp(end))}` +
-    '&minlat=34&maxlat=43.5&minlon=24&maxlon=46.5&orderby=timedesc&limit=800';
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const rows = await res.json();
-  if (!Array.isArray(rows)) throw new Error('beklenmeyen gövde');
-
-  return rows.map((r) => normalize({
-    id: `afad-${r.eventID}`,
-    time: new Date(`${String(r.date).replace(' ', 'T').replace(/Z$/, '')}Z`).toISOString(),
-    lat: r.latitude, lon: r.longitude, depth: r.depth, mag: r.magnitude,
-    magType: (r.type || 'ML').toUpperCase(),
-    place: (r.location || '').trim(), province: (r.province || '').trim(),
-    source: 'AFAD',
-  })).filter(Boolean);
-}
-
-/** 3. Kandilli topluluk aynası — açık kalırsa canlı, kapanırsa atlanır */
-async function loadKoeriLive() {
-  const res = await fetch('https://api.orhanayd.com/kandilli-rasathanesi-api/live.php');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  const rows = json.result || json.data || [];
-  if (!Array.isArray(rows) || !rows.length) throw new Error('boş yanıt');
-
-  return rows.map((r) => {
-    // Ayna TSI (UTC+3) saatiyle "YYYY.MM.DD HH:mm:ss" döner
-    const m = String(r.date || '').match(/(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
-    if (!m) return null;
-    const t = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4] - 3, +m[5], +m[6]));
-    const place = (r.title || r.location || '').replace(/\s+/g, ' ').trim();
-    const mag = Number(r.mag ?? r.ml ?? r.size?.ml);
-    return normalize({
-      id: `koeri-${t.getTime()}-${r.latitude}-${r.longitude}`,
-      time: t.toISOString(), lat: r.latitude, lon: r.longitude,
-      depth: r.depth, mag, magType: 'ML', place,
-      province: place.match(/\(([^)]+)\)\s*$/)?.[1]?.split('-').pop()?.trim() || '',
-      source: 'KOERI',
-    });
-  }).filter(Boolean);
-}
-
-/**
- * Aynı depremin iki kaynaktaki kaydını tek kayda indirger.
- * Eşik: 90 sn / 20 km / 1.0 büyüklük farkı.
- */
-function mergeQuakes(lists) {
-  const all = lists.flat().sort((a, b) => new Date(b.time) - new Date(a.time));
-  const kept = [];
-  const byId = new Set();
-
-  for (const q of all) {
-    if (byId.has(q.id)) continue;
-    const t = new Date(q.time).getTime();
-
-    const dup = kept.find((k) => {
-      if (Math.abs(new Date(k.time).getTime() - t) > 90000) return false;
-      if (Math.abs(k.mag - q.mag) > 1.0) return false;
-      const dLat = (k.lat - q.lat) * 111;
-      const dLon = (k.lon - q.lon) * 111 * Math.cos(q.lat * Math.PI / 180);
-      return Math.hypot(dLat, dLon) < 20;
-    });
-
-    if (dup) {
-      if (!dup.alsoIn.includes(q.source) && dup.source !== q.source) dup.alsoIn.push(q.source);
-      if (q.place.length > dup.place.length) dup.place = q.place;
-      continue;
-    }
-    byId.add(q.id);
-    kept.push(q);
-  }
-  return kept;
-}
-
-/** Tüm kaynakları paralel dener; en az biri tutarsa veriyi tazeler. */
-async function refresh({ quiet = false } = {}) {
-  setStatus('loading', 'yenileniyor…');
-
-  const attempts = [
-    ['repo',  loadRepo(),      8000],
-    ['afad',  loadAfadLive(),  9000],
-    ['koeri', loadKoeriLive(), 9000],
-  ];
-
-  const results = await Promise.all(attempts.map(async ([name, p, ms]) => {
-    try {
-      const out = await withTimeout(p, ms, name);
-      const quakes = Array.isArray(out) ? out : out.quakes;
-      return { name, ok: true, quakes, updated: out.updated };
-    } catch (err) {
-      return { name, ok: false, error: err.message || String(err), quakes: [] };
-    }
-  }));
-
-  state.sources = Object.fromEntries(results.map((r) =>
-    [r.name, r.ok ? { ok: true, count: r.quakes.length } : { ok: false, error: r.error }]));
-
-  const good = results.filter((r) => r.ok && r.quakes.length);
-  if (!good.length) {
-    setStatus('err', 'veri alınamadı');
-    if (!quiet) toast('Hiçbir kaynağa ulaşılamadı. Bağlantını kontrol et.', true);
-    renderSources();
-    return;
-  }
-
-  const merged = mergeQuakes(good.map((r) => r.quakes));
-  const liveHit = good.some((r) => r.name !== 'repo');
-
-  // Yeni gelenleri bildirimden önce tespit et
-  const fresh = state.firstLoadDone
-    ? merged.filter((q) => !state.seenIds.has(q.id))
-    : [];
-  merged.forEach((q) => state.seenIds.add(q.id));
-
-  state.quakes = merged;
-  state.updated = good.find((r) => r.name === 'repo')?.updated || new Date().toISOString();
-  state.firstLoadDone = true;
-
-  render();
-  renderSources();
-
-  const newest = merged[0] ? new Date(merged[0].time) : null;
-  const lagMin = newest ? Math.round((Date.now() - newest) / 60000) : null;
-  setStatus(
-    liveHit ? 'live' : 'ok',
-    newest ? `son deprem ${ago(merged[0].time)}` : 'veri yok',
-    `Kaynaklar: ${good.map((g) => g.name.toUpperCase()).join(', ')}` +
-    (lagMin != null ? ` · en yeni kayıt ${lagMin} dk önce` : ''),
-  );
-
-  if (fresh.length) notifyNew(fresh);
-}
-
-/* ======================================================================
-   Bildirim
-   ====================================================================== */
-
-function beep() {
-  if (!state.settings.sound) return;
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = ctx.currentTime;
-    [880, 660, 880].forEach((f, i) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.value = f; o.type = 'sine';
-      g.gain.setValueAtTime(0.0001, now + i * 0.22);
-      g.gain.exponentialRampToValueAtTime(0.25, now + i * 0.22 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.22 + 0.2);
-      o.connect(g); g.connect(ctx.destination);
-      o.start(now + i * 0.22); o.stop(now + i * 0.22 + 0.22);
-    });
-    setTimeout(() => ctx.close(), 1200);
-  } catch {}
-}
-
-function notifyNew(fresh) {
-  const worthy = fresh
-    .filter((q) => q.mag >= state.settings.notifyMag)
-    .sort((a, b) => b.mag - a.mag);
-
-  if (!worthy.length) {
-    if (fresh.length) toast(`${fresh.length} yeni deprem kaydedildi`);
-    return;
-  }
-
-  const q = worthy[0];
-  const near = state.me
-    ? ` · size ${Math.round(distKm(state.me.lat, state.me.lon, q.lat, q.lon))} km`
-    : '';
-  const title = `${q.mag.toFixed(1)} büyüklüğünde deprem`;
-  const body = `${q.place}${near}\n${fmtTime.format(new Date(q.time))} · ${q.depth.toFixed(0)} km derinlik`;
-
-  toast(`${title} — ${q.place}`, true);
-  beep();
-  if (navigator.vibrate) navigator.vibrate([200, 90, 200, 90, 400]);
-
-  if (state.settings.notify && 'Notification' in window && Notification.permission === 'granted') {
-    try {
-      const n = new Notification(title, { body, icon: 'icons/icon-192.png', tag: q.id, renotify: true });
-      n.onclick = () => { window.focus(); selectQuake(q.id); n.close(); };
-    } catch {}
-  }
-  focusQuake(q, 8);
-}
-
-/* ======================================================================
-   Harita
-   ====================================================================== */
-
-const map = L.map('map', {
-  zoomControl: false, attributionControl: true,
-  preferCanvas: true, worldCopyJump: false,
-}).fitBounds(TR_BOUNDS);
-
-L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-const TILES = {
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-};
-let tileLayer = null;
-
-function setTiles(theme) {
-  if (tileLayer) map.removeLayer(tileLayer);
-  tileLayer = L.tileLayer(TILES[theme], {
-    maxZoom: 18, subdomains: 'abcd',
-    attribution: '&copy; OpenStreetMap, &copy; CARTO — veri: AFAD & Kandilli',
-  }).addTo(map);
-}
-
-const markerLayer = L.layerGroup().addTo(map);
-let heatLayer = null;
-let faultLayer = null;
-let meMarker = null;
-const markerById = new Map();
-
-function popupHtml(q) {
-  const dist = state.me
-    ? `<div class="pop-row"><span>Size uzaklık</span><b>${Math.round(distKm(state.me.lat, state.me.lon, q.lat, q.lon))} km</b></div>`
-    : '';
-  const srcs = [q.source, ...q.alsoIn].filter(Boolean).join(' + ');
-  return `
-    <div class="pop-mag" style="color:${magColor(q.mag)}">${q.mag.toFixed(1)}</div>
-    <div class="pop-place">${escapeHtml(q.place || 'Bilinmeyen konum')}</div>
-    <div class="pop-row"><span>Zaman</span><b>${fmtFull.format(new Date(q.time))}</b></div>
-    <div class="pop-row"><span>Derinlik</span><b>${q.depth.toFixed(1)} km</b></div>
-    <div class="pop-row"><span>Ölçek</span><b>${q.magType}</b></div>
-    ${dist}
-    <div class="pop-src">Kaynak: ${escapeHtml(srcs)} · ${ago(q.time)}</div>`;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-function drawMarkers(list) {
-  markerLayer.clearLayers();
-  markerById.clear();
-
-  // Küçükler önce çizilsin ki büyükler üstte kalsın
-  const ordered = [...list].sort((a, b) => a.mag - b.mag);
-  const now = Date.now();
-
-  for (const q of ordered) {
-    const ageH = (now - new Date(q.time).getTime()) / 3.6e6;
-    const color = magColor(q.mag);
-    const m = L.circleMarker([q.lat, q.lon], {
-      radius: magRadius(q.mag),
-      color,
-      weight: q.mag >= 4 ? 2 : 1,
-      opacity: Math.max(0.35, 1 - ageH / 200),
-      fillColor: color,
-      fillOpacity: Math.max(0.12, 0.55 - ageH / 400),
-      className: 'q-mark' + (now - new Date(q.time).getTime() < RECENT_MS ? ' recent' : ''),
-    });
-    m.bindPopup(() => popupHtml(q), { autoPanPadding: [24, 24] });
-    m.on('click', () => { state.selected = q.id; highlightListItem(q.id); });
-    m.addTo(markerLayer);
-    markerById.set(q.id, m);
-  }
-}
-
-function drawHeat(list) {
-  if (!heatLayer) return;
-  heatLayer.setLatLngs(list.map((q) => [q.lat, q.lon, Math.max(0.1, (q.mag - 1) / 5)]));
-}
-
-function focusQuake(q, zoom) {
-  map.flyTo([q.lat, q.lon], Math.max(zoom || map.getZoom(), 7), { duration: 0.7 });
-  const m = markerById.get(q.id);
-  if (m) setTimeout(() => m.openPopup(), 720);
-}
-
-function selectQuake(id) {
-  const q = state.quakes.find((x) => x.id === id);
-  if (q) { state.selected = id; focusQuake(q, 9); highlightListItem(id); }
-}
-
-/* ======================================================================
-   Filtreleme
-   ====================================================================== */
-
-function filtered() {
-  const cutoff = Date.now() - state.hours * 3600 * 1000;
-  const needle = fold(state.query.trim());
-
-  let out = state.quakes.filter((q) =>
-    new Date(q.time).getTime() >= cutoff &&
-    q.mag >= state.minMag &&
-    (!needle || fold(q.place).includes(needle) || fold(q.province).includes(needle)));
-
-  if (state.sortBy === 'mag') {
-    out.sort((a, b) => b.mag - a.mag || new Date(b.time) - new Date(a.time));
-  } else if (state.sortBy === 'dist' && state.me) {
-    out.sort((a, b) =>
-      distKm(state.me.lat, state.me.lon, a.lat, a.lon) -
-      distKm(state.me.lat, state.me.lon, b.lat, b.lon));
-  } else {
-    out.sort((a, b) => new Date(b.time) - new Date(a.time));
-  }
-  return out;
-}
-
-/* ======================================================================
-   Liste
-   ====================================================================== */
-
-function renderList(list) {
-  const box = $('#list');
-  box.textContent = '';
-  $('#listCount').textContent =
-    list.length ? `${list.length} deprem` : 'eşleşen deprem yok';
-
-  if (!list.length) {
-    const e = el('div', 'empty');
-    e.textContent = 'Bu filtrelerle deprem bulunamadı. Zaman aralığını genişletmeyi dene.';
-    box.append(e);
-    return;
-  }
-
-  const frag = document.createDocumentFragment();
-  for (const q of list.slice(0, 400)) {
-    const b = el('button', 'qitem' + (q.id === state.selected ? ' sel' : ''));
-    b.dataset.id = q.id;
-
-    const mag = el('div', 'qmag');
-    mag.style.background = magColor(q.mag);
-    mag.textContent = q.mag.toFixed(1);
-
-    const body = el('div', 'qbody');
-    const place = el('div', 'qplace');
-    place.textContent = q.place || 'Bilinmeyen konum';
-
-    const bits = [ago(q.time), `${q.depth.toFixed(0)} km derinlik`];
-    if (state.me) bits.push(`${Math.round(distKm(state.me.lat, state.me.lon, q.lat, q.lon))} km uzakta`);
-    const sub = el('div', 'qsub');
-    sub.textContent = bits.join(' · ');
-
-    body.append(place, sub);
-    b.append(mag, body);
-    b.onclick = () => selectQuake(q.id);
-    frag.append(b);
-  }
-  box.append(frag);
-}
-
-function highlightListItem(id) {
-  document.querySelectorAll('.qitem').forEach((n) =>
-    n.classList.toggle('sel', n.dataset.id === id));
-  const n = document.querySelector(`.qitem[data-id="${CSS.escape(id)}"]`);
-  if (n) n.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-}
-
-/* ======================================================================
-   Analiz
-   ====================================================================== */
-
-function renderAnalysis(list) {
-  const pane = $('#tab-analysis');
-  pane.textContent = '';
-
-  if (!list.length) {
-    const e = el('div', 'empty');
-    e.textContent = 'Analiz için yeterli veri yok.';
-    pane.append(e);
-    return;
-  }
-
-  const mags = list.map((q) => q.mag);
-  const biggest = list.reduce((a, b) => (b.mag > a.mag ? b : a));
-  const perDay = list.length / Math.max(state.hours / 24, 1 / 24);
-
-  pane.append(statGrid([
-    ['Toplam deprem', String(list.length)],
-    ['En büyük', biggest.mag.toFixed(1)],
-    ['Ortalama büyüklük', (mags.reduce((a, b) => a + b, 0) / mags.length).toFixed(2)],
-    ['Günlük ortalama', perDay >= 10 ? Math.round(perDay) : perDay.toFixed(1)],
-  ]));
-
-  pane.append(timelineCard(list));
-  pane.append(provinceCard(list));
-  pane.append(magHistCard(list));
-  pane.append(depthCard(list));
-  pane.append(aftershockCard(list, biggest));
-}
-
-function statGrid(pairs) {
-  const g = el('div', 'stats');
-  for (const [k, v] of pairs) {
-    const s = el('div', 'stat');
-    const vv = el('div', 'v'); vv.textContent = v;
-    const kk = el('div', 'k'); kk.textContent = k;
-    s.append(vv, kk); g.append(s);
-  }
-  return g;
-}
-
-function card(title, note) {
-  const c = el('div', 'card');
-  const h = el('h3'); h.textContent = title;
-  const p = el('p', 'note'); p.textContent = note;
-  c.append(h, p);
-  return c;
-}
-
-/** Zaman içindeki deprem sayısı — sütun grafiği */
-function timelineCard(list) {
-  const buckets = state.hours <= 24 ? 24 : state.hours <= 168 ? 28 : 30;
-  const span = state.hours * 3600 * 1000;
-  const end = Date.now();
-  const counts = new Array(buckets).fill(0);
-  const maxMags = new Array(buckets).fill(0);
-
-  for (const q of list) {
-    const i = Math.min(buckets - 1,
-      Math.floor((new Date(q.time).getTime() - (end - span)) / (span / buckets)));
-    if (i >= 0) { counts[i]++; maxMags[i] = Math.max(maxMags[i], q.mag); }
-  }
-
-  const unit = state.hours <= 24 ? 'saatlik' : state.hours <= 168 ? '6 saatlik' : 'günlük';
-  const c = card('Zaman dağılımı', `${unit} dilimlerde deprem sayısı, rengi en büyük sarsıntıyı gösterir`);
-
-  const max = Math.max(...counts, 1);
-  const W = 100, H = 46, gap = 0.6;
-  const bw = W / buckets;
-  const svg = svgEl(W, H);
-
-  counts.forEach((n, i) => {
-    const h = (n / max) * H;
-    const r = rect(i * bw, H - h, Math.max(bw - gap, 0.4), Math.max(h, n ? 0.6 : 0));
-    r.setAttribute('fill', n ? magColor(maxMags[i]) : 'var(--line)');
-    r.setAttribute('opacity', n ? '0.9' : '0.35');
-    r.append(titleEl(`${n} deprem${maxMags[i] ? ` · en büyük ${maxMags[i].toFixed(1)}` : ''}`));
-    svg.append(r);
-  });
-
-  c.append(svg);
-
-  // Eksen etiketleri HTML olarak — SVG orantisiz olceklendigi icin metin bozuluyor
-  const axis = el('div', 'axis');
-  const a = el('span'); a.textContent =
-    state.hours <= 24 ? `${state.hours} saat önce` : `${Math.round(state.hours / 24)} gün önce`;
-  const b = el('span'); b.textContent = 'şimdi';
-  axis.append(a, b);
-  c.append(axis);
-  return c;
-}
-
-/** En sık deprem olan iller */
-function provinceCard(list) {
-  const counts = new Map();
-  for (const q of list) {
-    const key = q.province || q.place.match(/\(([^)]+)\)/)?.[1] || 'Belirsiz / deniz';
-    counts.set(key, (counts.get(key) || 0) + 1);
-  }
-  const top = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const max = top[0]?.[1] || 1;
-
-  const c = card('En sık deprem olan iller', `Seçili aralıkta ${counts.size} farklı bölgede kayıt var`);
-  const bars = el('div', 'bars');
-  for (const [name, n] of top) {
-    const row = el('div', 'bar');
-    const nm = el('div', 'n'); nm.textContent = name;
-    const tr = el('div', 't'); const fill = el('i');
-    fill.style.width = `${(n / max) * 100}%`;
-    tr.append(fill);
-    const cnt = el('div', 'c'); cnt.textContent = String(n);
-    row.append(nm, tr, cnt);
-    row.onclick = () => { $('#q').value = name; state.query = name; renderFromFilters(); };
-    row.style.cursor = 'pointer';
-    bars.append(row);
-  }
-  c.append(bars);
-  return c;
-}
-
-/** Büyüklük dağılımı */
-function magHistCard(list) {
-  const edges = [0, 1, 2, 3, 4, 5, 6, 9];
-  const counts = new Array(edges.length - 1).fill(0);
-  for (const q of list) {
-    for (let i = edges.length - 2; i >= 0; i--) {
-      if (q.mag >= edges[i]) { counts[i]++; break; }
-    }
-  }
-  const max = Math.max(...counts, 1);
-  const c = card('Büyüklük dağılımı', 'Küçük depremler her zaman büyüklerden çok daha sıktır');
-  const bars = el('div', 'bars');
-  counts.forEach((n, i) => {
-    if (!n && i > 5) return;
-    const row = el('div', 'bar');
-    const nm = el('div', 'n');
-    nm.textContent = i === edges.length - 2 ? `${edges[i]}+` : `${edges[i]} – ${edges[i + 1]}`;
-    const tr = el('div', 't'); const fill = el('i');
-    fill.style.width = `${(n / max) * 100}%`;
-    fill.style.background = magColor(edges[i] + 0.5);
-    tr.append(fill);
-    const cnt = el('div', 'c'); cnt.textContent = String(n);
-    row.append(nm, tr, cnt);
-    bars.append(row);
-  });
-  c.append(bars);
-  return c;
-}
-
-/** Derinlik — sığ depremler yüzeyde daha çok hissedilir */
-function depthCard(list) {
-  const bands = [
-    ['0 – 10 km', (d) => d < 10],
-    ['10 – 20 km', (d) => d >= 10 && d < 20],
-    ['20 – 50 km', (d) => d >= 20 && d < 50],
-    ['50 km +', (d) => d >= 50],
-  ];
-  const counts = bands.map(([, f]) => list.filter((q) => f(q.depth)).length);
-  const max = Math.max(...counts, 1);
-  const shallow = Math.round((counts[0] / list.length) * 100);
-
-  const c = card('Derinlik dağılımı', `Depremlerin %${shallow}'i 10 km'den sığ — sığ olanlar yüzeyde daha şiddetli hissedilir`);
-  const bars = el('div', 'bars');
-  bands.forEach(([name], i) => {
-    const row = el('div', 'bar');
-    const nm = el('div', 'n'); nm.textContent = name;
-    const tr = el('div', 't'); const fill = el('i');
-    fill.style.width = `${(counts[i] / max) * 100}%`;
-    tr.append(fill);
-    const cnt = el('div', 'c'); cnt.textContent = String(counts[i]);
-    row.append(nm, tr, cnt);
-    bars.append(row);
-  });
-  c.append(bars);
-  return c;
-}
-
-/**
- * En büyük depremin çevresinde ve sonrasında olan sarsıntıları sayar.
- * 100 km / aynı gün penceresi — kaba ama okunabilir bir artçı göstergesi.
- */
-function aftershockCard(list, main) {
-  const t0 = new Date(main.time).getTime();
-  const cluster = list.filter((q) =>
-    q.id !== main.id &&
-    new Date(q.time).getTime() > t0 &&
-    distKm(main.lat, main.lon, q.lat, q.lon) < 100);
-
-  const c = card(
-    'En büyük deprem ve artçıları',
-    `${main.mag.toFixed(1)} — ${main.place || 'bilinmeyen konum'}`,
-  );
-
-  const g = statGrid([
-    ['Sonraki sarsıntı', String(cluster.length)],
-    ['100 km içinde', cluster.length ? `en büyüğü ${Math.max(...cluster.map((q) => q.mag)).toFixed(1)}` : '—'],
-  ]);
-  g.style.border = '1px solid var(--line)';
-  g.style.borderRadius = '10px';
-  g.style.overflow = 'hidden';
-  c.append(g);
-
-  const btn = el('button', 'btn');
-  btn.textContent = 'Haritada göster';
-  btn.style.marginTop = '11px';
-  btn.onclick = () => { focusQuake(main, 8); showPanel('list'); };
-  c.append(btn);
-  return c;
-}
-
-/* --- küçük SVG yardımcıları --- */
-function svgEl(w, h) {
-  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  s.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  s.setAttribute('preserveAspectRatio', 'none');
-  s.style.height = '76px';
-  return s;
-}
-function rect(x, y, w, h) {
-  const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  r.setAttribute('x', x); r.setAttribute('y', y);
-  r.setAttribute('width', w); r.setAttribute('height', h);
-  return r;
-}
-function titleEl(text) {
-  const t = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-  t.textContent = text;
-  return t;
-}
-
-/* ======================================================================
-   Durum çubuğu, kaynak listesi, gösterge
-   ====================================================================== */
-
-function setStatus(kind, text, title) {
-  const dot = $('#statusDot');
-  dot.className = 'dot' + (kind === 'err' ? ' err' : kind === 'loading' ? ' stale' : kind === 'live' ? ' live' : '');
-  $('#statusText').textContent = text;
-  $('.status').title = title || '';
-}
-
-function renderSources() {
-  const box = $('#srcStatus');
-  box.textContent = '';
-  const names = { repo: 'Depo verisi (GitHub)', afad: 'AFAD canlı ucu', koeri: 'Kandilli aynası' };
-
-  for (const [key, label] of Object.entries(names)) {
-    const s = state.sources[key];
-    const row = el('div', 'srcline');
-    const d = el('span', 'dot' + (s?.ok ? '' : ' err'));
-    const t = el('span');
-    t.textContent = s
-      ? (s.ok ? `${label} — ${s.count} kayıt` : `${label} — ulaşılamadı`)
-      : `${label} — denenmedi`;
-    row.append(d, t);
-    if (s && !s.ok) row.title = s.error;
-    box.append(row);
-  }
-
-  if (state.updated) {
-    const row = el('div', 'srcline');
-    row.style.color = 'var(--fg-mute)';
-    row.textContent = `Depo verisi güncellendi: ${fmtFull.format(new Date(state.updated))}`;
-    box.append(row);
-  }
-}
-
-function renderLegend() {
-  const box = $('#legend');
-  box.textContent = '';
-  for (const s of MAG_STOPS) {
-    const r = el('div', 'row');
-    const i = el('i'); i.style.background = s.color;
-    const t = el('span'); t.textContent = s.label;
-    r.append(i, t); box.append(r);
-  }
-}
-
-/* ======================================================================
-   Ana render
-   ====================================================================== */
-
-/** Filtre degisiminde listeyi bastan goster — kullanici eski kaydirmada kalmasin */
-function renderFromFilters() {
-  render();
-  $('#tab-list').scrollTop = 0;
-}
-
-function render() {
-  const list = filtered();
-  drawMarkers(list);
-  drawHeat(list);
-  renderList(list);
-  if (!$('#tab-analysis').classList.contains('hide')) renderAnalysis(list);
-}
-
-/* ======================================================================
-   Arayüz olayları
-   ====================================================================== */
-
-// -- sekmeler
-function showPanel(name) {
-  document.querySelectorAll('.tabs button').forEach((b) =>
-    b.classList.toggle('on', b.dataset.tab === name));
-  ['list', 'analysis', 'settings'].forEach((n) =>
-    $(`#tab-${n}`).classList.toggle('hide', n !== name));
-  if (name === 'analysis') renderAnalysis(filtered());
-  if (window.innerWidth <= 860) $('#panel').classList.remove('min');
-}
-document.querySelectorAll('.tabs button').forEach((b) =>
-  b.onclick = () => showPanel(b.dataset.tab));
-
-// -- zaman aralığı
-$('#rangeChips').onclick = (e) => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  state.hours = Number(chip.dataset.h);
-  store.set('hours', state.hours);
-  document.querySelectorAll('#rangeChips .chip').forEach((c) => c.classList.toggle('on', c === chip));
-  renderFromFilters();
-};
-
-// -- arama (yazarken bekle)
-let qTimer;
-$('#q').oninput = (e) => {
-  clearTimeout(qTimer);
-  qTimer = setTimeout(() => { state.query = e.target.value; renderFromFilters(); }, 180);
-};
-
-// -- en az büyüklük
-const minMag = $('#minMag');
-minMag.value = state.minMag;
-$('#minMagOut').textContent = state.minMag;
-minMag.oninput = (e) => {
-  state.minMag = Number(e.target.value);
-  $('#minMagOut').textContent = state.minMag;
-  store.set('minMag', state.minMag);
-  renderFromFilters();
-};
-
-// -- sıralama
-$('#sortBy').onchange = (e) => {
-  if (e.target.value === 'dist' && !state.me) {
-    toast('Önce konum iznini ver (sağdaki hedef simgesi).');
-    e.target.value = state.sortBy;
-    return;
-  }
-  state.sortBy = e.target.value;
-  renderFromFilters();
-};
-
-// -- yenile
-$('#btnRefresh').onclick = () => refresh();
-
-// -- tema
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  document.querySelector('meta[name=theme-color]')
-    .setAttribute('content', theme === 'light' ? '#ffffff' : '#0b1120');
-  setTiles(theme);
-  store.set('theme', theme);
-}
-$('#btnTheme').onclick = () =>
-  applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
-
-// -- konum
-$('#btnLocate').onclick = () => {
-  if (!navigator.geolocation) return toast('Tarayıcın konum desteklemiyor.');
-  toast('Konum alınıyor…');
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      state.me = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      if (meMarker) map.removeLayer(meMarker);
-      meMarker = L.circleMarker([state.me.lat, state.me.lon], {
-        radius: 7, color: '#fff', weight: 2.5, fillColor: '#38bdf8', fillOpacity: 1,
-      }).addTo(map).bindPopup('Buradasınız');
-      map.flyTo([state.me.lat, state.me.lon], 8, { duration: 0.8 });
-
-      const near = [...state.quakes]
-        .sort((a, b) =>
-          distKm(state.me.lat, state.me.lon, a.lat, a.lon) -
-          distKm(state.me.lat, state.me.lon, b.lat, b.lon))[0];
-      if (near) {
-        toast(`Size en yakın: ${near.mag.toFixed(1)} — ${near.place} (${Math.round(distKm(state.me.lat, state.me.lon, near.lat, near.lon))} km)`);
-      }
-      render();
-    },
-    () => toast('Konum alınamadı. Tarayıcı izinlerini kontrol et.'),
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
-  );
-};
-
-// -- ısı haritası
-$('#btnHeat').onclick = (e) => {
-  const btn = e.currentTarget;
-  if (heatLayer) {
-    map.removeLayer(heatLayer); heatLayer = null; btn.classList.remove('on');
-    markerLayer.addTo(map);
-    return;
-  }
-  heatLayer = L.heatLayer([], {
-    radius: 24, blur: 18, maxZoom: 9, minOpacity: 0.25,
-    gradient: { 0.2: '#38bdf8', 0.4: '#4ade80', 0.6: '#facc15', 0.8: '#fb923c', 1: '#ef4444' },
-  }).addTo(map);
-  drawHeat(filtered());
-  map.removeLayer(markerLayer);
-  btn.classList.add('on');
-};
-
-// -- fay hatları (varsa)
-$('#btnFaults').onclick = async (e) => {
-  const btn = e.currentTarget;
-  if (faultLayer) {
-    map.removeLayer(faultLayer); faultLayer = null; btn.classList.remove('on');
-    return;
-  }
-  try {
-    const res = await fetch('data/faults.geojson');
-    if (!res.ok) throw new Error();
-    faultLayer = L.geoJSON(await res.json(), {
-      style: { color: '#f97316', weight: 1.6, opacity: 0.75 },
-      onEachFeature: (f, layer) => {
-        const n = f.properties?.name || f.properties?.FAY_ADI;
-        if (n) layer.bindPopup(`<b>${escapeHtml(n)}</b><br>Diri fay hattı`);
-      },
-    }).addTo(map);
-    btn.classList.add('on');
-  } catch {
-    toast('Fay hattı verisi yok — data/faults.geojson ekleyebilirsin.');
-  }
-};
-
-// -- Türkiye'ye sığdır
-$('#btnFit').onclick = () => map.flyToBounds(TR_BOUNDS, { duration: 0.7 });
-
-// -- ayar anahtarları
-function bindSwitch(sel, key, onChange) {
-  const sw = $(sel);
-  const paint = () => sw.classList.toggle('on', !!state.settings[key]);
-  paint();
-  const toggle = async () => {
-    const next = !state.settings[key];
-    if (onChange && (await onChange(next)) === false) return;
-    state.settings[key] = next;
-    store.set(key, next);
-    paint();
-  };
-  sw.onclick = toggle;
-  sw.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } };
-}
-
-bindSwitch('#swNotify', 'notify', async (on) => {
-  if (!on) return true;
-  if (!('Notification' in window)) {
-    toast('Bu tarayıcı bildirim desteklemiyor. Uyarılar yine de ekranda görünür.');
-    return true;
-  }
-  if (Notification.permission === 'denied') {
-    toast('Bildirim izni reddedilmiş. Tarayıcı ayarlarından açman gerek.', true);
-    return false;
-  }
-  if (Notification.permission !== 'granted') {
-    const p = await Notification.requestPermission();
-    if (p !== 'granted') { toast('Bildirim izni verilmedi.'); return false; }
-  }
-  toast('Bildirimler açık. Sayfa açık kaldığı sürece uyarı alırsın.');
-  return true;
-});
-
-bindSwitch('#swSound', 'sound', (on) => { if (on) beep(); return true; });
-bindSwitch('#swAuto', 'auto', (on) => { setupAutoRefresh(on); return true; });
-
-const notifyMag = $('#notifyMag');
-notifyMag.value = state.settings.notifyMag;
-$('#notifyMagOut').textContent = Number(state.settings.notifyMag).toFixed(1);
-notifyMag.oninput = (e) => {
-  state.settings.notifyMag = Number(e.target.value);
-  $('#notifyMagOut').textContent = state.settings.notifyMag.toFixed(1);
-  store.set('notifyMag', state.settings.notifyMag);
-};
-
-// -- mobil alt panel: sürükle / dokun
-(function sheet() {
-  const panel = $('#panel'), grip = $('#grip');
-  let startY = 0, startH = 0, dragging = false;
-
-  const height = () => panel.getBoundingClientRect().height;
-
-  grip.addEventListener('pointerdown', (e) => {
-    if (window.innerWidth > 860) return;
-    dragging = true; startY = e.clientY; startH = height();
-    panel.style.transition = 'none';
-    grip.setPointerCapture(e.pointerId);
-  });
-
-  grip.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    const h = Math.min(window.innerHeight * 0.92,
-      Math.max(52, startH - (e.clientY - startY)));
-    panel.style.height = `${h}px`;
-  });
-
-  grip.addEventListener('pointerup', () => {
-    if (!dragging) return;
-    dragging = false;
-    panel.style.transition = '';
-    const ratio = height() / window.innerHeight;
-    panel.style.height = '';
-    panel.classList.remove('min', 'full');
-    if (ratio < 0.22) panel.classList.add('min');
-    else if (ratio > 0.66) panel.classList.add('full');
-    setTimeout(() => map.invalidateSize(), 300);
-  });
-
-  grip.addEventListener('click', () => {
-    if (window.innerWidth > 860) return;
-    panel.classList.toggle('full');
-    panel.classList.remove('min');
-    setTimeout(() => map.invalidateSize(), 300);
-  });
-})();
-
-// -- PWA kurulumu
-let installPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  installPrompt = e;
-  $('#installRow').style.display = 'flex';
-});
-$('#btnInstall').onclick = async () => {
-  if (!installPrompt) return;
-  installPrompt.prompt();
-  await installPrompt.userChoice;
-  installPrompt = null;
-  $('#installRow').style.display = 'none';
-};
-
-// -- otomatik yenileme
-let autoTimer = null;
-function setupAutoRefresh(on) {
-  clearInterval(autoTimer);
-  if (on) autoTimer = setInterval(() => { if (!document.hidden) refresh({ quiet: true }); }, REFRESH_MS);
-}
-
-document.addEventListener('visibilitychange', () => {
-  // Arkadan öne dönünce bekleyen veriyi hemen çek
-  if (!document.hidden && state.settings.auto) refresh({ quiet: true });
-});
-
-window.addEventListener('online', () => refresh({ quiet: true }));
-
-// Pencere boyutu degisince harita kendi olcusunu bilmiyor; yeniden hesaplat
-let resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => map.invalidateSize(), 150);
-});
-
-// -- klavye kısayolları (masaüstü)
-document.addEventListener('keydown', (e) => {
-  if (e.target.matches('input,select,textarea')) return;
-  if (e.key === 'r') refresh();
-  if (e.key === '/') { e.preventDefault(); showPanel('list'); $('#q').focus(); }
-  if (e.key === 'f') $('#btnFit').click();
-});
-
-/* ======================================================================
-   Başlangıç
-   ====================================================================== */
-
-applyTheme(store.get('theme',
-  matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
-renderLegend();
-// Yerlesim oturduktan sonra harita olcusunu tazeleyip Turkiye'ye otur
-requestAnimationFrame(() => { map.invalidateSize(); map.fitBounds(TR_BOUNDS); });
-document.querySelectorAll('#rangeChips .chip').forEach((c) =>
-  c.classList.toggle('on', Number(c.dataset.h) === state.hours));
-setupAutoRefresh(state.settings.auto);
-refresh();
-
-// Liste zaman etiketleri ("3 dk önce") kendiliğinden yaşlansın
-setInterval(() => {
-  if (!$('#tab-list').classList.contains('hide')) renderList(filtered());
-}, 60000);
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () =>
-    navigator.serviceWorker.register('sw.js').catch(() => {}));
-}
-</script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
