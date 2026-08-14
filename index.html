@@ -41,8 +41,9 @@
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
   /* Ikonlari ev gostergesinin hemen ustune indirmek icin guvenli alanin bir
-     kismini bos dolgu yerine dugme yuksekligine katiyoruz */
-  --icon-drop:min(22px, var(--safe-b));
+     kismini bos dolgu yerine dugme yuksekligine katiyoruz; en az 6px'lik
+     kenar payi (MIN_PADDING, bkz. safearea.js) her zaman dolgu olarak kalir */
+  --icon-drop:min(22px, max(0px, calc(var(--safe-b) - 6px)));
   --nav-h:56px;
 }
 html[data-theme="light"]{

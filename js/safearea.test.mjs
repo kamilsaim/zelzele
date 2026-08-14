@@ -58,9 +58,9 @@ const cases = [
     bekleneni: 34,
   },
   {
-    ad: 'iPhone 14/15 Pro ana ekran, sadece üst çentik dışlanmış — alta tam dolgu (GERÇEK CİHAZ)',
-    girdi: { inset: 34, topInset: 59, innerHeight: 793, innerWidth: 393, screenW: 393, screenH: 852 },
-    bekleneni: 34,
+    ad: 'iPhone 14/15 Pro ana ekran, görünüm 59px kısa — dolgu konmamalı (GERÇEK CİHAZ, kontrol.jpeg)',
+    girdi: { inset: 34, innerHeight: 793, innerWidth: 393, screenW: 393, screenH: 852 },
+    bekleneni: 6,
   },
 ];
 

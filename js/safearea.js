@@ -26,14 +26,13 @@ const MIN_PADDING = 6;
  *
  * @param {object} o
  * @param {number} o.inset       env(safe-area-inset-bottom) değeri, piksel
- * @param {number} o.topInset    env(safe-area-inset-top) değeri, piksel
  * @param {number} o.innerHeight görünüm yüksekliği
  * @param {number} o.innerWidth  görünüm genişliği
  * @param {number} o.screenW     ekran genişliği
  * @param {number} o.screenH     ekran yüksekliği
  * @returns {number} uygulanacak alt dolgu, piksel
  */
-export function decidePadding({ inset, topInset = 0, innerHeight, innerWidth, screenW, screenH }) {
+export function decidePadding({ inset, innerHeight, innerWidth, screenW, screenH }) {
   if (!inset) return 0;
 
   // Ekran ölçüleri bazı tarayıcılarda dönmeyle birlikte değişmiyor;
@@ -44,15 +43,17 @@ export function decidePadding({ inset, topInset = 0, innerHeight, innerWidth, sc
 
   const portrait = innerHeight >= innerWidth;
   const expected = portrait ? longSide : shortSide;
-  const gap = expected - innerHeight;
 
-  // Görünüm ekrandan küçük olabilir sadece üst durum çubuğu (Dynamic Island
-  // gibi) zaten dışarıda tutulduğu için — bu, altın da kırpıldığı anlamına
-  // gelmez. Boşluk üst güvenli alandan daha büyükse (yani alt da hesaba
-  // katılmışsa) dolguyu azaltıyoruz; değilse alt hâlâ tam dolgu istiyor.
-  const bottomAlreadyHandled = gap - topInset >= inset - 4;
+  // DENENDİ VE YANLIŞ ÇIKTI: fark üst durum çubuğundan geliyor sanıp
+  // (topInset ile kıyaslayıp) büyük farklarda tam dolgu uygulamıştık.
+  // Gerçek cihazda (iPhone 14/15 Pro, gorunum 793 / ekran 852, fark 59)
+  // görünümün ALTI kırpılmış çıktı — tam dolgu koyunca menü ekranın
+  // gerçek dibinden 59px yukarıda, altında boş beyaz şerit kalarak durdu
+  // (kullanıcı ekran görüntüsüyle doğruladı). Fark ne kaynaklı olursa
+  // olsun görünüm ekranı kaplamıyorsa güvenli taraf minimal dolgudur.
+  const coversScreen = Math.abs(innerHeight - expected) <= 4;
 
-  return bottomAlreadyHandled ? Math.min(inset, MIN_PADDING) : inset;
+  return coversScreen ? inset : Math.min(inset, MIN_PADDING);
 }
 
 /** CSS'e sorup verilen env(safe-area-inset-*) kenarını piksel olarak öğrenir */
