@@ -1,9 +1,18 @@
-# Zelzele
+<p align="center">
+  <img src="icons/icon-192.png" width="120" height="120" alt="Zelzele">
+</p>
 
-Türkiye'deki depremleri harita üzerinde takip eden, telefonda ve bilgisayarda çalışan
-bir uygulama. Veri AFAD ve Kandilli Rasathanesi'nden (KOERI) gelir.
+<h1 align="center">Zelzele</h1>
 
-**Yayında:** https://kamilsaim.github.io/zelzele/
+<p align="center">
+  Türkiye'deki depremleri harita üzerinde takip eden, telefonda ve bilgisayarda
+  çalışan bir uygulama.<br>
+  Veri <b>AFAD</b> ve <b>Kandilli Rasathanesi</b>'nden gelir.
+</p>
+
+<p align="center">
+  <a href="https://kamilsaim.github.io/zelzele/"><b>kamilsaim.github.io/zelzele</b></a>
+</p>
 
 ## Ne yapar
 
@@ -101,10 +110,16 @@ scripts/serve.mjs                 geliştirme sunucusu
 worker/                           push sunucusu (Supabase Edge Function) — kendi README'si var
 .github/workflows/update-data.yml 5 dakikada bir çalışan güncelleme işi
 data/latest.json                  üretilen veri (workflow yazar)
+icons/                            uygulama simgesi (192 ve 512) — logo burada
+docs/yol-haritasi.md              planlanan bölümler
 ```
 
 Modüller birbirini doğrudan çağırmak yerine `state.js` üzerindeki olay yolunu kullanır
 (`emit` / `on`), böylece harita listeyi, liste haritayı import etmek zorunda kalmaz.
+
+## Yol haritası
+
+Planlanan bölümler ve öncelik sırası: [docs/yol-haritasi.md](docs/yol-haritasi.md)
 
 ## Sınırlar
 

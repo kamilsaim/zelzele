@@ -9,7 +9,7 @@
  *     ilgili depremde acar.
  */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `zelzele-shell-${VERSION}`;
 const DATA = `zelzele-data-${VERSION}`;
 const TILES = `zelzele-tiles-${VERSION}`;
@@ -18,7 +18,6 @@ const SHELL_FILES = [
   './',
   './index.html',
   './manifest.json',
-  './logo.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './js/app.js',

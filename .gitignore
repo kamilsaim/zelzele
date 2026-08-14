@@ -4,3 +4,6 @@ Thumbs.db
 
 # VAPID ozel anahtari - asla commitlenmez
 .vapid.json
+
+# yerel arac ayarlari
+.claude/
