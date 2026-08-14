@@ -128,7 +128,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Ikonlar, manifest ve CDN kutuphaneleri surumle birlikte degismiyor
+  // Ikonlar ve CDN kutuphaneleri surumle birlikte degismiyor
   e.respondWith(staleWhileRevalidate(request, SHELL));
 });
 
