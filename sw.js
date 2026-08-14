@@ -9,7 +9,7 @@
  *     ilgili depremde acar.
  */
 
-const VERSION = 'v8';
+const VERSION = 'v9';
 const SHELL = `zelzele-shell-${VERSION}`;
 const DATA = `zelzele-data-${VERSION}`;
 const TILES = `zelzele-tiles-${VERSION}`;

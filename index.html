@@ -250,6 +250,11 @@ select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
 .btn:disabled{opacity:.5}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#04121f}
 .srcline{display:flex;align-items:center;gap:8px;padding:7px 13px;font-size:12px;color:var(--fg-dim)}
+/* Destek icin olcum dokumu — surum numarasina dokununca acilir */
+.diag{margin:9px 0 0;padding:9px 10px;border-radius:9px;background:var(--panel-2);
+  border:1px solid var(--line);font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--fg-dim);white-space:pre-wrap;overflow-x:auto}
+#appVersion{cursor:pointer}
 .srcline .dot{width:6px;height:6px}
 
 /* şehirler */
@@ -577,6 +582,7 @@ select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
           <div>
             <div class="lbl">Sürüm <span id="appVersion">—</span></div>
             <div class="sub">Bir sorun bildirirken bu numarayı da söyle. Uygulama güncellenmiyorsa sağdaki düğme önbelleği temizleyip en son sürümü indirir.</div>
+            <pre class="diag hide" id="diag"></pre>
           </div>
           <button class="btn" id="btnUpdate">Güncelle</button>
         </div>

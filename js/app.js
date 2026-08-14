@@ -15,7 +15,7 @@ import { filtered, renderList, highlightRow } from './list.js';
 import { renderAnalysis } from './analysis.js';
 import { renderHome } from './home.js';
 import { showDetail, hideDetail, initDetail } from './detail.js';
-import { initSafeArea } from './safearea.js';
+import { initSafeArea, tuneSafeArea } from './safearea.js';
 import {
   alertNew, beep, ensurePermission, subscribePush, unsubscribePush,
   syncPushRules, sendTestPush, pushBlocker, pushSupported,
@@ -434,6 +434,33 @@ function wireEvents() {
 
   // -- surum ve elle guncelleme
   $('#appVersion').textContent = APP_VERSION;
+
+  // Surum numarasina dokunmak olcum dokumunu acar/kapatir.
+  // Yerlesim sorunlarinda tahmin yurutmek yerine cihazin gercek
+  // degerlerini gormek icin; kullanici kazara denk gelmez.
+  $('#appVersion').onclick = () => {
+    const box = $('#diag');
+    if (!box.classList.contains('hide')) { box.classList.add('hide'); return; }
+
+    const r = tuneSafeArea();
+    const nav = $('#bottomnav');
+    const navBox = nav.getBoundingClientRect();
+    const standalone = matchMedia('(display-mode: standalone)').matches ||
+      navigator.standalone === true;
+
+    box.textContent = [
+      `surum      ${APP_VERSION}`,
+      `gorunum    ${r.innerWidth} x ${r.innerHeight}`,
+      `ekran      ${r.screenW} x ${r.screenH}`,
+      `env inset  ${r.inset}`,
+      `uygulanan  ${r.padding}`,
+      `menu       ust ${Math.round(navBox.top)} alt ${Math.round(navBox.bottom)} yuk ${Math.round(navBox.height)}`,
+      `dip fark   ${Math.round(r.innerHeight - navBox.bottom)}`,
+      `standalone ${standalone}`,
+      `dpr        ${window.devicePixelRatio}`,
+    ].join('\n');
+    box.classList.remove('hide');
+  };
   $('#btnUpdate').onclick = async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
