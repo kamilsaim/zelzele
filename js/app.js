@@ -452,7 +452,7 @@ function wireEvents() {
       `surum      ${APP_VERSION}`,
       `gorunum    ${r.innerWidth} x ${r.innerHeight}`,
       `ekran      ${r.screenW} x ${r.screenH}`,
-      `env inset  ${r.inset}`,
+      `env inset  ${r.inset} (ust ${r.topInset})`,
       `uygulanan  ${r.padding}`,
       `menu       ust ${Math.round(navBox.top)} alt ${Math.round(navBox.bottom)} yuk ${Math.round(navBox.height)}`,
       `dip fark   ${Math.round(r.innerHeight - navBox.bottom)}`,

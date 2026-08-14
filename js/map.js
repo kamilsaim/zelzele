@@ -7,7 +7,7 @@
  */
 
 import { $, el, escapeHtml, ago, fmtFull, distKm } from './util.js';
-import { TR_BOUNDS, MAG_STOPS, magColor, magRadius, RECENT_MS } from './config.js';
+import { TR_BOUNDS, MAG_STOPS, magColor, magRadius, RECENT_MS, DESKTOP_MIN } from './config.js';
 import { state, emit } from './state.js';
 
 const TILES = {
@@ -105,7 +105,9 @@ export function drawQuakes(list) {
     });
 
     marker.bindPopup(() => popupHtml(q), { autoPanPadding: [24, 24] });
-    marker.on('click', () => emit('quake:selected', q.id));
+    marker.on('click', () => emit(
+      window.innerWidth >= DESKTOP_MIN ? 'quake:selected' : 'quake:detail', q.id,
+    ));
     // Baloncuk hizli bakis; tam kayit icin ayrinti sayfasi
     marker.on('popupopen', (e) => {
       const more = e.popup.getElement()?.querySelector('.pop-more');

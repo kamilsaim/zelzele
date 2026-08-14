@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>Zelzele — Türkiye Deprem Haritası</title>
 <meta name="description" content="Türkiye'deki depremleri harita üzerinde anlık takip et. AFAD ve Kandilli verisi, konumuna göre bildirim.">
 <meta name="theme-color" content="#0b1120">
@@ -12,6 +12,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zelzele">
+
+<script>
+// Tema secimini CSS'ten once, senkron uyguluyoruz; yoksa JS modulu yuklenene
+// kadar varsayilan (koyu) renkle acilip sonra kullanicinin secimine ziplayarak
+// goze batan bir yanip sonme oluyordu.
+(function () {
+  try {
+    var raw = localStorage.getItem('zelzele.theme');
+    var theme = raw === null ? null : JSON.parse(raw);
+    if (theme !== 'light' && theme !== 'dark') {
+      theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    document.documentElement.dataset.theme = theme;
+  } catch {}
+})();
+</script>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
