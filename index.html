@@ -332,11 +332,18 @@ select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
   .mu-right{right:10px;top:auto;bottom:14px}
   .legend{bottom:14px}
 
-  /* Alt menü */
+  /*
+   * Alt menü. Esnek kutunun son çocuğu olarak bırakmak yerine doğrudan
+   * görünümün dibine sabitliyoruz: #app herhangi bir sebeple ekranın altına
+   * kadar uzanmazsa bile menü yerinden oynamıyor. #app'e eklenen alt dolgu
+   * da içeriğin menünün altında kalmasını önlüyor.
+   */
+  #app{padding-bottom:calc(var(--nav-h) + var(--safe-b))}
   #bottomnav{
-    display:flex;flex:none;z-index:1500;
+    position:fixed;left:0;right:0;bottom:0;
+    display:flex;z-index:1500;
     background:var(--panel);border-top:1px solid var(--line);
-    /* Ev tusu / gosterge cubugu alani menu renginde kalsin */
+    /* Ana ekran göstergesi alanı menü renginde kalsın */
     padding-bottom:var(--safe-b);
   }
   #bottomnav button{

@@ -15,6 +15,7 @@ import { filtered, renderList, highlightRow } from './list.js';
 import { renderAnalysis } from './analysis.js';
 import { renderHome } from './home.js';
 import { showDetail, hideDetail, initDetail } from './detail.js';
+import { initSafeArea } from './safearea.js';
 import {
   alertNew, beep, ensurePermission, subscribePush, unsubscribePush,
   syncPushRules, sendTestPush, pushBlocker, pushSupported,
@@ -494,6 +495,8 @@ function wireEvents() {
 }
 
 function start() {
+  // Once olcum: menu yuksekligi bunun uzerine oturuyor
+  initSafeArea();
   initMap();
   applyTheme(store.get('theme',
     matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
