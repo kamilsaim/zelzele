@@ -10,3 +10,7 @@ Thumbs.db
 
 # yol haritasi ve notlar - depoda durmasin
 docs/
+
+# ekran goruntuleri
+*.jpeg
+*.jpg
