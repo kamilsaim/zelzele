@@ -9,7 +9,7 @@
  *     ilgili depremde acar.
  */
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL = `zelzele-shell-${VERSION}`;
 const DATA = `zelzele-data-${VERSION}`;
 const TILES = `zelzele-tiles-${VERSION}`;
@@ -116,14 +116,14 @@ self.addEventListener('fetch', (e) => {
   }
 
   /*
-   * Kendi HTML/JS dosyalarimiz once agdan gelmeli.
+   * Kendi HTML/JS dosyalarimiz ve manifest once agdan gelmeli.
    *
    * Onbellekten verirsek yeni index.html ile eski app.js ayni sayfada
    * bulusabiliyor ve uygulama artik var olmayan bir fonksiyonu cagirip
    * aciliyor. Dosyalar kucuk; agdan almanin maliyeti bu riske degmez.
    * Ag yoksa onbellek yine devrede, cevrimdisi calisma bozulmuyor.
    */
-  if (url.origin === self.location.origin && /\.(js|html)$/.test(url.pathname)) {
+  if (url.origin === self.location.origin && /(\.(js|html)|manifest\.json)$/.test(url.pathname)) {
     e.respondWith(networkFirst(request, SHELL));
     return;
   }
