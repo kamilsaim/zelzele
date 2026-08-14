@@ -4,7 +4,7 @@
  */
 
 import { $, $$, el, toast, ago, fmtFull, distKm, store } from './util.js';
-import { REFRESH_MS, DESKTOP_MIN, PROVINCES } from './config.js';
+import { REFRESH_MS, DESKTOP_MIN, PROVINCES, APP_VERSION } from './config.js';
 import { state, settings, setSetting, setFilter, emit, on } from './state.js';
 import { fetchAll } from './data.js';
 import {
@@ -429,6 +429,33 @@ function wireEvents() {
     } finally {
       btn.disabled = false;
       btn.textContent = 'Deneme gönder';
+    }
+  };
+
+  // -- surum ve elle guncelleme
+  $('#appVersion').textContent = APP_VERSION;
+  $('#btnUpdate').onclick = async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'Kontrol ediliyor…';
+    try {
+      // Onbellekleri ve service worker'i tamamen bosalt: iOS ana ekran
+      // uygulamalarinda tek guvenilir yol bu.
+      if ('serviceWorker' in navigator) {
+        for (const reg of await navigator.serviceWorker.getRegistrations()) {
+          await reg.unregister();
+        }
+      }
+      if ('caches' in window) {
+        for (const key of await caches.keys()) await caches.delete(key);
+      }
+      // Aboneligi bozmamak icin depoya dokunmuyoruz; yalnizca dosyalar tazeleniyor
+      toast('En son sürüm indiriliyor…');
+      setTimeout(() => location.reload(), 600);
+    } catch (err) {
+      toast(`Güncellenemedi: ${err.message}`, true);
+      btn.disabled = false;
+      btn.textContent = 'Güncelle';
     }
   };
 

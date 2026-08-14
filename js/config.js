@@ -2,6 +2,16 @@
  * Uygulama sabitleri. Deger degistirmek isteyen tek yere baksin diye burada toplu.
  */
 
+/**
+ * Uygulama surumu. Ayarlar ekraninda gosteriliyor.
+ *
+ * Neden gerekli: iOS ana ekran uygulamalari service worker'i cok gec
+ * guncelliyor. Kullanici bir sorun bildirdiginde hangi surumu calistirdigini
+ * bilmeden tahmin yurutmek zorunda kaliyoruz. Surum gorunur olunca bu
+ * belirsizlik ortadan kalkiyor.
+ */
+export const APP_VERSION = '1.1.0';
+
 /** Turkiye ve yakin cevresi — harita acilisinda ve veri filtresinde kullanilir */
 export const TR_BOUNDS = [[35.5, 25.2], [42.5, 45.2]];
 
