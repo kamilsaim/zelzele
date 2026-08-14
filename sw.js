@@ -9,7 +9,7 @@
  *     ilgili depremde acar.
  */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL = `zelzele-shell-${VERSION}`;
 const DATA = `zelzele-data-${VERSION}`;
 const TILES = `zelzele-tiles-${VERSION}`;
@@ -51,7 +51,12 @@ self.addEventListener('activate', (e) => {
       .then((keys) => Promise.all(
         keys.filter((k) => ![SHELL, DATA, TILES].includes(k)).map((k) => caches.delete(k)),
       ))
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
+      // Yeni surum devraldiginda acik sekmeler eski kodla kalmasin
+      .then(async () => {
+        const clients = await self.clients.matchAll({ type: 'window' });
+        for (const client of clients) client.postMessage({ type: 'sw-updated' });
+      }),
   );
 });
 
@@ -109,6 +114,20 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
+  /*
+   * Kendi HTML/JS dosyalarimiz once agdan gelmeli.
+   *
+   * Onbellekten verirsek yeni index.html ile eski app.js ayni sayfada
+   * bulusabiliyor ve uygulama artik var olmayan bir fonksiyonu cagirip
+   * aciliyor. Dosyalar kucuk; agdan almanin maliyeti bu riske degmez.
+   * Ag yoksa onbellek yine devrede, cevrimdisi calisma bozulmuyor.
+   */
+  if (url.origin === self.location.origin && /\.(js|html)$/.test(url.pathname)) {
+    e.respondWith(networkFirst(request, SHELL));
+    return;
+  }
+
+  // Ikonlar, manifest ve CDN kutuphaneleri surumle birlikte degismiyor
   e.respondWith(staleWhileRevalidate(request, SHELL));
 });
 

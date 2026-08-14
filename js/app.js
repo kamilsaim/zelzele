@@ -528,10 +528,20 @@ function start() {
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
-    // Bildirime tiklaninca ilgili depreme git
     navigator.serviceWorker.addEventListener('message', (e) => {
+      // Bildirime tiklaninca ilgili depreme git
       if (e.data?.type === 'focus-quake' && e.data.id) emit('quake:detail', e.data.id);
+
+      // Yeni surum devraldi: sayfa eski kodla calismaya devam etmesin.
+      // Bir kez yenile; bayrak olmadan yenileme dongusune girebilir.
+      if (e.data?.type === 'sw-updated' && !sessionStorage.getItem('zelzele.reloaded')) {
+        sessionStorage.setItem('zelzele.reloaded', '1');
+        location.reload();
+      }
     });
+    // Yenileme bayragi yalnizca guncelleme anina ait olmali
+    navigator.serviceWorker.ready.then(() =>
+      setTimeout(() => sessionStorage.removeItem('zelzele.reloaded'), 5000));
   }
 }
 
