@@ -501,6 +501,18 @@ function wireEvents() {
     $('#installRow').classList.add('hide');
   };
 
+  /*
+   * APK indirme satiri.
+   *
+   * Yalnizca Android tarayicisinda ise yarar. Kullanici zaten kurulu
+   * uygulamanin (APK ya da ana ekran kisayolu) icindeyse kendisine kendi
+   * kurulum dosyasini onermek anlamsiz olur; standalone modda gizli kalir.
+   */
+  if (/Android/i.test(navigator.userAgent)
+      && !matchMedia('(display-mode: standalone)').matches) {
+    $('#apkRow').classList.remove('hide');
+  }
+
   // -- modul olaylari
   on('quake:selected', (id) => {
     const q = state.quakes.find((x) => x.id === id);

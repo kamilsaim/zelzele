@@ -269,6 +269,8 @@ select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
   border:1px solid var(--line);font-size:13.5px;font-weight:600;white-space:nowrap}
 .btn:disabled{opacity:.5}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#04121f}
+/* Baglanti olan dugmeler (APK indirme) buton gibi hizalansin */
+a.btn{display:inline-block;text-align:center}
 .srcline{display:flex;align-items:center;gap:8px;padding:7px 13px;font-size:12px;color:var(--fg-dim)}
 /* Destek icin olcum dokumu — surum numarasina dokununca acilir */
 .diag{margin:9px 0 0;padding:9px 10px;border-radius:9px;background:var(--panel-2);
@@ -597,6 +599,17 @@ select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
             <div class="sub">Uygulama gibi tam ekran açılır, internetsizken son veriyi gösterir.</div>
           </div>
           <button class="btn primary" id="btnInstall">Ekle</button>
+        </div>
+
+        <!-- Yalnizca Android tarayicida gorunur; uygulamanin kendi icinde gizli -->
+        <div class="setting hide" id="apkRow">
+          <div>
+            <div class="lbl">Android uygulaması</div>
+            <div class="sub">Play Store dışından kurulur. Kurulumda "bilinmeyen kaynak" uyarısı çıkarsa izin vermen gerekir.</div>
+          </div>
+          <a class="btn" id="btnApk"
+             href="https://github.com/kamilsaim/zelzele/releases/latest/download/zelzele.apk"
+             rel="noopener">APK indir</a>
         </div>
 
         <div class="setting">

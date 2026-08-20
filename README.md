@@ -11,7 +11,23 @@
 </p>
 
 <p align="center">
-  <a href="https://kamilsaim.github.io/zelzele/"><b>kamilsaim.github.io/zelzele</b></a>
+  <a href="https://kamilsaim.github.io/zelzele/"><b>Uygulamayı aç &rarr;</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/kamilsaim/zelzele/releases/latest/download/zelzele.apk"><b>Android APK indir</b></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/kamilsaim/zelzele/releases/latest">
+    <img alt="Son surum" src="https://img.shields.io/github/v/release/kamilsaim/zelzele?label=s%C3%BCr%C3%BCm&color=0ea5e9"></a>
+  <a href="https://github.com/kamilsaim/zelzele/releases/latest/download/zelzele.apk">
+    <img alt="APK indirme" src="https://img.shields.io/github/downloads/kamilsaim/zelzele/total?label=apk%20indirme&color=22c55e"></a>
+  <a href="https://github.com/kamilsaim/zelzele/actions/workflows/update-data.yml">
+    <img alt="Veri guncelleme" src="https://img.shields.io/github/actions/workflow/status/kamilsaim/zelzele/update-data.yml?label=veri&color=a855f7"></a>
+  <img alt="Bagimliliksiz" src="https://img.shields.io/badge/derleme-yok-64748b">
+</p>
+
+<p align="center">
+  <sub>Kurulum gerektirmez, hesap istemez, reklam yok. Veri 5 dakikada bir tazelenir.</sub>
 </p>
 
 ## Ne yapar
@@ -58,17 +74,29 @@ Uygulama bunu tespit edip Ayarlar sekmesinde açıklıyor.
 **Android:** Chrome'da siteyi aç → *Ana ekrana ekle* (veya Ayarlar sekmesindeki **Ekle**
 düğmesi).
 
-**APK:** Android kabuğu `C:\apk\zelzele-apk` altında hazır. Uygulama zaten PWA olduğu
-için kabukta kendi kodu yok: siteyi TWA (Trusted Web Activity) ile, Chrome motoruyla ve
-adres çubuğu olmadan açıyor.
+**APK:** [zelzele.apk](https://github.com/kamilsaim/zelzele/releases/latest/download/zelzele.apk)
+— Play Store dışından kurulur, ilk açılışta "bilinmeyen kaynak" izni istenir. Ayarlar
+sekmesinde de indirme bağlantısı var.
 
-TWA seçilmesinin nedeni bildirim. Push service worker üzerinden çalışır, WebView'de
-(dolayısıyla Capacitor'da) service worker push desteği yoktur — kabuğu WebView'e çevirmek
-push'u kırar. TWA'da site gerçek Chrome içinde koştuğu için buradaki Supabase + VAPID
-düzeni hiç değişmeden çalışır; sitenin içeriği sunucudan geldiği için web tarafı
-değiştiğinde yeni APK yayımlamaya da gerek yoktur.
+APK ince bir kabuktur, kendi kodu yoktur: siteyi **TWA** (Trusted Web Activity) ile,
+Chrome motoruyla ve adres çubuğu olmadan açar. İçerik sunucudan geldiği için web tarafı
+değiştiğinde yeni APK yayımlamaya gerek yoktur — uygulama kendini tazeler.
 
-Derleme, imzalama ve `assetlinks.json` adımları için `C:\apk\zelzele-apk\README.md`.
+<details>
+<summary>Neden TWA, neden WebView değil</summary>
+
+Uygulamanın en kritik özelliği arka plan bildirimi. Push, service worker üzerinden
+çalışır; WebView'de (dolayısıyla Capacitor'da) service worker push desteği **yoktur**.
+Kabuğu WebView'e çevirmek bildirimi komple kırar ve sunucu tarafını FCM'e taşımayı
+gerektirirdi. TWA'da site gerçek Chrome içinde koştuğu için buradaki Supabase + VAPID
+düzeni hiç değişmeden çalışır.
+
+Bunun bir bedeli var: TWA'nın adres çubuğunu gizlemesi için site ile uygulamanın
+birbirini doğrulaması gerekir. Doğrulama alan adı düzeyindedir, bu yüzden beyan dosyası
+bu depoda değil, kök depoda durur:
+`https://kamilsaim.github.io/.well-known/assetlinks.json`
+
+</details>
 
 ## Fay hatları katmanı
 
