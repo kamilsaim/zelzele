@@ -58,15 +58,17 @@ Uygulama bunu tespit edip Ayarlar sekmesinde açıklıyor.
 **Android:** Chrome'da siteyi aç → *Ana ekrana ekle* (veya Ayarlar sekmesindeki **Ekle**
 düğmesi).
 
-**APK:** Uygulama zaten PWA olduğu için ayrı bir Android projesi yazmaya gerek yok:
+**APK:** Android kabuğu `C:\apk\zelzele-apk` altında hazır. Uygulama zaten PWA olduğu
+için kabukta kendi kodu yok: siteyi TWA (Trusted Web Activity) ile, Chrome motoruyla ve
+adres çubuğu olmadan açıyor.
 
-```bash
-npx @bubblewrap/cli init --manifest https://<kullanıcı-adın>.github.io/<repo>/manifest.json
-npx @bubblewrap/cli build
-```
+TWA seçilmesinin nedeni bildirim. Push service worker üzerinden çalışır, WebView'de
+(dolayısıyla Capacitor'da) service worker push desteği yoktur — kabuğu WebView'e çevirmek
+push'u kırar. TWA'da site gerçek Chrome içinde koştuğu için buradaki Supabase + VAPID
+düzeni hiç değişmeden çalışır; sitenin içeriği sunucudan geldiği için web tarafı
+değiştiğinde yeni APK yayımlamaya da gerek yoktur.
 
-Bubblewrap siteyi TWA (Trusted Web Activity) olarak paketler; çıkan `app-release-signed.apk`
-doğrudan kurulabilir veya Play Store'a yüklenebilir.
+Derleme, imzalama ve `assetlinks.json` adımları için `C:\apk\zelzele-apk\README.md`.
 
 ## Fay hatları katmanı
 

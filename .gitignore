@@ -14,3 +14,6 @@ docs/
 # ekran goruntuleri
 *.jpeg
 *.jpg
+
+# APK - surumler GitHub Releases uzerinden dagitilir
+*.apk
