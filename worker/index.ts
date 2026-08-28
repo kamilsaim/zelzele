@@ -115,6 +115,15 @@ function payloadFor(q: Quake, reason: string, sub: Sub) {
     id: q.id,
     mag: q.mag,
     time: q.time,
+    // Tam deprem kaydi: sw.js bunu onbellege yazar, uygulama data/latest.json
+    // henuz guncellenmemisse bile bildirimi tetikleyen depremi hemen gosterir.
+    lat: q.lat,
+    lon: q.lon,
+    depth: q.depth,
+    magType: q.magType,
+    place: q.place,
+    province: q.province,
+    source: q.source,
     url: './',
   });
 }

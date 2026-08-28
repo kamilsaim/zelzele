@@ -9,10 +9,17 @@
  *     ilgili depremde acar.
  */
 
-const VERSION = 'v14';
+const VERSION = 'v15';
 const SHELL = `zelzele-shell-${VERSION}`;
 const DATA = `zelzele-data-${VERSION}`;
 const TILES = `zelzele-tiles-${VERSION}`;
+
+/*
+ * Push ile gelen depremlerin gecici saklandigi yer. Surumsuz: guncelleme
+ * gecince de kaybolmamali. `activate` temizligi de bu yuzden dokunmuyor.
+ */
+const PENDING = 'zelzele-pending';
+const PENDING_URL = '/__pending_quakes__';
 
 const SHELL_FILES = [
   './',
@@ -50,7 +57,7 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((k) => ![SHELL, DATA, TILES].includes(k)).map((k) => caches.delete(k)),
+        keys.filter((k) => ![SHELL, DATA, TILES, PENDING].includes(k)).map((k) => caches.delete(k)),
       ))
       .then(() => self.clients.claim())
       // Yeni surum devraldiginda acik sekmeler eski kodla kalmasin
@@ -134,6 +141,30 @@ self.addEventListener('fetch', (e) => {
 
 /* ---------------------------------------------------------------- push */
 
+/**
+ * Push ile gelen depremi onbellege ekler.
+ *
+ * Neden gerekli: data/latest.json GitHub Actions ile guncelleniyor ve bu
+ * bazen saatlerce gecikebiliyor (GitHub'in sik zamanlanmis is akislarini
+ * yogunlukta erteleyip atlamasi — bilinen bir platform kisitlamasi).
+ * Bildirim ise sunucudan canli geliyor ve genelde bu dosyadan daha guncel.
+ * Depremi burada saklamazsak, kullanici bildirime dokununca ya da
+ * uygulamayi acinca o depremi bulamiyor.
+ */
+async function rememberPending(quake) {
+  const cache = await caches.open(PENDING);
+  const res = await cache.match(PENDING_URL);
+  const list = res ? await res.json() : [];
+  const cutoff = Date.now() - 48 * 3600 * 1000;
+  const next = [
+    quake,
+    ...list.filter((q) => q.id !== quake.id && new Date(q.time).getTime() > cutoff),
+  ].slice(0, 30);
+  await cache.put(PENDING_URL, new Response(JSON.stringify(next), {
+    headers: { 'Content-Type': 'application/json' },
+  }));
+}
+
 self.addEventListener('push', (e) => {
   let data = {};
   try {
@@ -157,7 +188,17 @@ self.addEventListener('push', (e) => {
     data: { id: data.id, url: data.url || './' },
   };
 
-  e.waitUntil(self.registration.showNotification(title, options));
+  const tasks = [self.registration.showNotification(title, options)];
+
+  if (data.id && Number.isFinite(data.lat) && Number.isFinite(data.lon) && Number.isFinite(data.mag)) {
+    tasks.push(rememberPending({
+      id: data.id, time: data.time, lat: data.lat, lon: data.lon,
+      depth: data.depth, mag: data.mag, magType: data.magType,
+      place: data.place, province: data.province, source: data.source,
+    }));
+  }
+
+  e.waitUntil(Promise.all(tasks));
 });
 
 self.addEventListener('notificationclick', (e) => {

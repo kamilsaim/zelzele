@@ -152,6 +152,28 @@ export function mergeQuakes(lists) {
   return kept;
 }
 
+/**
+ * Push bildirimiyle gelip service worker'in onbellege yazdigi depremler.
+ *
+ * Neden gerekli: data/latest.json GitHub Actions ile guncelleniyor ve bu
+ * bazen saatlerce gecikebiliyor. Push ise sunucudan canli gonderiliyor —
+ * bu yuzden genelde depodaki veriden daha guncel. Bu kayitlari diger
+ * kaynaklarla birlestirmezsek, kullanici bildirimi gorup uygulamayi actiginda
+ * o depremi bulamaz.
+ */
+async function loadPending() {
+  if (!('caches' in self)) return [];
+  try {
+    const cache = await self.caches.open('zelzele-pending');
+    const res = await cache.match('/__pending_quakes__');
+    if (!res) return [];
+    const list = await res.json();
+    return list.map((q) => normalize(q, 'PUSH')).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 /* ----------------------------------------------------------------- cekim */
 
 /**
@@ -165,30 +187,36 @@ export async function fetchAll() {
     ['koeri', loadKoeriLive(), 9000],
   ];
 
-  const results = await Promise.all(attempts.map(async ([name, promise, ms]) => {
-    try {
-      const out = await withTimeout(promise, ms, name);
-      return {
-        name, ok: true,
-        quakes: Array.isArray(out) ? out : out.quakes,
-        updated: out.updated,
-      };
-    } catch (err) {
-      return { name, ok: false, error: err.message || String(err), quakes: [] };
-    }
-  }));
+  const [results, pending] = await Promise.all([
+    Promise.all(attempts.map(async ([name, promise, ms]) => {
+      try {
+        const out = await withTimeout(promise, ms, name);
+        return {
+          name, ok: true,
+          quakes: Array.isArray(out) ? out : out.quakes,
+          updated: out.updated,
+        };
+      } catch (err) {
+        return { name, ok: false, error: err.message || String(err), quakes: [] };
+      }
+    })),
+    loadPending(),
+  ]);
 
   const sources = Object.fromEntries(results.map((r) =>
     [r.name, r.ok ? { ok: true, count: r.quakes.length } : { ok: false, error: r.error }]));
 
   const good = results.filter((r) => r.ok && r.quakes.length);
-  if (!good.length) return { ok: false, quakes: [], sources, updated: null };
+  if (!good.length && !pending.length) return { ok: false, quakes: [], sources, updated: null };
+
+  const lists = good.map((r) => r.quakes);
+  if (pending.length) lists.push(pending);
 
   return {
     ok: true,
-    quakes: mergeQuakes(good.map((r) => r.quakes)),
+    quakes: mergeQuakes(lists),
     sources,
     updated: good.find((r) => r.name === 'repo')?.updated || new Date().toISOString(),
-    live: good.some((r) => r.name !== 'repo'),
+    live: good.some((r) => r.name !== 'repo') || pending.length > 0,
   };
 }
