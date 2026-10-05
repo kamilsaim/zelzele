@@ -1,17 +1,21 @@
 /**
  * Veri katmani.
  *
- * Uc kaynak paralel denenir:
- *   1. data/latest.json  — ayni origin, her zaman calisir (GitHub Actions tazeler)
- *   2. AFAD apiv2        — canli, ama CORS'a takilabilir
- *   3. Kandilli aynasi   — canli, ucuncu tarafin hizmeti, kapanabilir
+ * Iki kaynak paralel denenir:
+ *   1. data/latest.json  — son 30 gun, ayni origin (GitHub Actions tazeler;
+ *                          cron'u pratikte 3-7 saatte bir calisiyor)
+ *   2. Canli akis        — son 24 saat, push sunucusu 5 dakikada bir tazeler
+ *
+ * Tarayicidan dogrudan AFAD'a ve Kandilli aynasina gitmekten vazgecildi:
+ * AFAD istegi baska alan adina yonlendirip reddediyor, ayna kapandi.
+ * Sunucu tarafi ise iki kurumu da sorunsuz okuyor.
  *
  * Hangisi/hangileri yanit verirse kayitlar birlestirilir ve ayni deprem
  * tekillestirilir. Hicbiri tutmazsa eldeki veri korunur.
  */
 
 import { withTimeout } from './util.js';
-import { PROVINCES } from './config.js';
+import { PROVINCES, PUSH } from './config.js';
 
 /* --------------------------------------------------------- normallestirme */
 
@@ -61,58 +65,19 @@ async function loadRepo() {
   };
 }
 
-const pad = (n) => String(n).padStart(2, '0');
-const afadStamp = (d) =>
-  `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
-  `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
-
-/** 2. AFAD canli ucu. CORS basligi yoksa tarayici engeller — beklenen durum. */
-async function loadAfadLive() {
-  const end = new Date();
-  const start = new Date(end - 36 * 3600 * 1000);
-  const url = 'https://deprem.afad.gov.tr/apiv2/event/filter' +
-    `?start=${encodeURIComponent(afadStamp(start))}&end=${encodeURIComponent(afadStamp(end))}` +
-    '&minlat=34&maxlat=43.5&minlon=24&maxlon=46.5&orderby=timedesc&limit=800';
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const rows = await res.json();
-  if (!Array.isArray(rows)) throw new Error('beklenmeyen gövde');
-
-  return rows.map((r) => normalize({
-    id: `afad-${r.eventID}`,
-    time: new Date(`${String(r.date).replace(' ', 'T').replace(/Z$/, '')}Z`).toISOString(),
-    lat: r.latitude, lon: r.longitude, depth: r.depth, mag: r.magnitude,
-    magType: (r.type || 'ML').toUpperCase(),
-    place: (r.location || '').trim(),
-    province: (r.province || '').trim(),
-    source: 'AFAD',
-  })).filter(Boolean);
-}
-
-/** 3. Kandilli topluluk aynasi — acik kalirsa canli, kapanirsa atlanir */
-async function loadKoeriLive() {
-  const res = await fetch('https://api.orhanayd.com/kandilli-rasathanesi-api/live.php');
+/**
+ * 2. Canli akis — push sunucusunun her turda yazdigi son 24 saat.
+ * AFAD ve Kandilli kayitlari zaten birlestirilmis ve il adlari normallesmis gelir.
+ */
+async function loadFeed() {
+  const res = await fetch(`${PUSH.endpoint}?action=feed`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  const rows = json.result || json.data || [];
-  if (!Array.isArray(rows) || !rows.length) throw new Error('boş yanıt');
-
-  return rows.map((r) => {
-    // Ayna TSI (UTC+3) saatiyle "YYYY.MM.DD HH:mm:ss" doner
-    const m = String(r.date || '').match(/(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
-    if (!m) return null;
-    const t = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4] - 3, +m[5], +m[6]));
-    const place = (r.title || r.location || '').replace(/\s+/g, ' ').trim();
-    const mag = Number(r.mag ?? r.ml ?? r.size?.ml);
-    return normalize({
-      id: `koeri-${t.getTime()}-${r.latitude}-${r.longitude}`,
-      time: t.toISOString(), lat: r.latitude, lon: r.longitude,
-      depth: r.depth, mag, magType: 'ML', place,
-      province: place.match(/\(([^)]+)\)\s*$/)?.[1]?.split('-').pop()?.trim() || '',
-      source: 'KOERI',
-    });
-  }).filter(Boolean);
+  if (!Array.isArray(json.quakes)) throw new Error('beklenmeyen gövde');
+  return {
+    updated: json.updated,
+    quakes: json.quakes.map((q) => normalize(q, 'CANLI')).filter(Boolean),
+  };
 }
 
 /* ----------------------------------------------------------- birlestirme */
@@ -183,19 +148,14 @@ async function loadPending() {
 export async function fetchAll() {
   const attempts = [
     ['repo', loadRepo(), 8000],
-    ['afad', loadAfadLive(), 9000],
-    ['koeri', loadKoeriLive(), 9000],
+    ['live', loadFeed(), 9000],
   ];
 
   const [results, pending] = await Promise.all([
     Promise.all(attempts.map(async ([name, promise, ms]) => {
       try {
         const out = await withTimeout(promise, ms, name);
-        return {
-          name, ok: true,
-          quakes: Array.isArray(out) ? out : out.quakes,
-          updated: out.updated,
-        };
+        return { name, ok: true, quakes: out.quakes, updated: out.updated };
       } catch (err) {
         return { name, ok: false, error: err.message || String(err), quakes: [] };
       }
@@ -217,6 +177,7 @@ export async function fetchAll() {
     quakes: mergeQuakes(lists),
     sources,
     updated: good.find((r) => r.name === 'repo')?.updated || new Date().toISOString(),
+    liveUpdated: good.find((r) => r.name === 'live')?.updated || null,
     live: good.some((r) => r.name !== 'repo') || pending.length > 0,
   };
 }

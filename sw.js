@@ -9,7 +9,7 @@
  *     ilgili depremde acar.
  */
 
-const VERSION = 'v15';
+const VERSION = 'v16';
 const SHELL = `zelzele-shell-${VERSION}`;
 const DATA = `zelzele-data-${VERSION}`;
 const TILES = `zelzele-tiles-${VERSION}`;
@@ -100,8 +100,8 @@ self.addEventListener('fetch', (e) => {
 
   const url = new URL(request.url);
 
-  // Canli API'ler ve push sunucusu onbelleklenmez
-  if (/afad\.gov\.tr|orhanayd\.com|supabase\.co/.test(url.hostname)) return;
+  // Canli akis ve push sunucusu onbelleklenmez
+  if (/supabase\.co/.test(url.hostname)) return;
 
   if (url.pathname.endsWith('latest.json') || url.pathname.includes('/data/')) {
     e.respondWith(networkFirst(request, DATA));

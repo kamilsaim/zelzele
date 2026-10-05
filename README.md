@@ -49,17 +49,20 @@ bilgisayarda harita solda kalır, aynı ekranlar sağ panelde sekme olur.
 
 ## Veri nereden geliyor
 
-Üç kaynak paralel denenir, hangisi yanıt verirse veri ondan gelir; ikisi de tutarsa
-kayıtlar birleştirilip aynı deprem tekilleştirilir (90 sn / 20 km / 1.0 büyüklük eşiği).
+İki kaynak paralel denenir; ikisi de tutarsa kayıtlar birleştirilip aynı deprem
+tekilleştirilir (90 sn / 20 km / 1.0 büyüklük eşiği).
 
-| Kaynak | Nasıl | Not |
+| Kaynak | Kapsam | Kim tazeler |
 |---|---|---|
-| `data/latest.json` | Aynı origin, her zaman çalışır | GitHub Actions 5 dakikada bir tazeler |
-| AFAD `apiv2` | Tarayıcıdan doğrudan | CORS'a takılırsa sessizce atlanır |
-| Kandilli aynası | Topluluk proxy'si | Ayna kapanırsa sessizce atlanır |
+| Canlı akış (`zlzl-push?action=feed`) | Son 24 saat | Push sunucusu, 5 dakikada bir |
+| `data/latest.json` | Son 30 gün | GitHub Actions — pratikte 3–7 saatte bir |
 
-Yani canlı uçlar çalıştığında anlık, çalışmadığında en fazla birkaç dakika gecikmeli
-veri görürsün. Uygulama hiçbir durumda boş kalmaz.
+İkisi de AFAD ve Kandilli'yi sunucu tarafında okur. Tarayıcıdan bu kurumlara doğrudan
+gidilmez: AFAD tarayıcı isteğini başka alan adına yönlendirip reddediyor, önceden
+kullanılan Kandilli aynası (`api.orhanayd.com`) kapandı.
+
+Yani son 24 saat en fazla ~5 dakika, daha eskisi birkaç saat gecikmeli olabilir.
+Canlı akış düşerse uygulama depo verisiyle çalışmaya devam eder, hiçbir durumda boş kalmaz.
 
 `.github/workflows/update-data.yml` `scripts/fetch-quakes.mjs`'i çalıştırır: AFAD'ın
 JSON ucundan ve KOERI'nin metin listesinden son 30 günü çeker, birleştirir,
@@ -124,7 +127,7 @@ manifest.json                     PWA tanımı
 scripts/fetch-quakes.mjs          AFAD + KOERI çekici, bağımlılıksız Node
 scripts/serve.mjs                 geliştirme sunucusu
 worker/                           push sunucusu (Supabase Edge Function) — kendi README'si var
-.github/workflows/update-data.yml 5 dakikada bir çalışan güncelleme işi
+.github/workflows/update-data.yml 30 günlük veriyi tazeleyen iş (cron */5, pratikte saatler)
 data/latest.json                  üretilen veri (workflow yazar)
 icons/                            uygulama simgesi (192 ve 512) — logo burada
 ```
@@ -134,10 +137,10 @@ Modüller birbirini doğrudan çağırmak yerine `state.js` üzerindeki olay yol
 
 ## Sınırlar
 
-- GitHub Actions cron'u **en sık 5 dakikada bir** çalışır ve yoğunlukta gecikebilir.
-  Anlık gecikme kritikse canlı uçlara veya kendi sunucuna ihtiyacın olur.
-- Kandilli aynası üçüncü bir tarafın hizmeti; kapanabilir. Kapanırsa uygulama
-  AFAD ve depo verisiyle çalışmaya devam eder.
+- GitHub Actions cron'u `*/5` yazılı olsa da GitHub onu ölçüp 3–7 saatte bir
+  çalıştırıyor. Bu yüzden son 24 saat canlı akıştan gelir; depo yalnızca geçmiş içindir.
+- Canlı akış Supabase'e bağlı. Supabase düşerse uygulama depo verisine geri döner,
+  o zaman en yeni kayıt saatlerce geride kalabilir.
 - İlk yayınlanan büyüklükler kurumlar tarafından sonradan revize edilir.
 
 ## Test

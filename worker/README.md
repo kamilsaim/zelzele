@@ -8,7 +8,9 @@ Uygulama kapalıyken bildirim gönderen sunucu tarafı. Supabase projesi `beeboo
 ```
 pg_cron (5 dk)  →  zlzl_dispatch()  →  pg_net  →  Edge Function "zlzl-push"
                                                         │
-                                          AFAD + Kandilli'den son 6 saat
+                                          AFAD + Kandilli'den son 24 saat
+                                                        │
+                                          zlzl_feed'e yaz  →  uygulama GET ?action=feed ile okur
                                                         │
                                           son 90 dk'daki depremler
                                                         │
@@ -19,7 +21,8 @@ pg_cron (5 dk)  →  zlzl_dispatch()  →  pg_net  →  Edge Function "zlzl-push
                                           zlzl_sent'e işaretle (tekrar gitmesin)
 ```
 
-Tarayıcı aynı uca `subscribe` / `update` / `unsubscribe` / `test` işlemleriyle konuşur.
+Tarayıcı aynı uca `subscribe` / `update` / `unsubscribe` / `test` işlemleriyle (POST) ve
+canlı veri için `GET ?action=feed` ile konuşur.
 `dispatch` işlemi `x-zlzl-secret` başlığı ister; bu sır yalnızca veritabanında durur,
 istemciye hiçbir zaman gitmez.
 
@@ -42,10 +45,11 @@ alır ve bildirimleri komple kapatır.
 | Tablo | İşi |
 |---|---|
 | `zlzl_subs` | Cihaz abonelikleri ve kuralları. Birincil anahtar push ucudur. |
-| `zlzl_sent` | Hangi depremin hangi cihaza gittiği. Cron 5 dakikada bir koştuğu için bu olmadan aynı bildirim tekrar giderdi. 30 günden eskisi `zlzl_prune_sent()` ile silinir. |
+| `zlzl_sent` | Hangi depremin hangi cihaza gittiği. Cron 5 dakikada bir koştuğu için bu olmadan aynı bildirim tekrar giderdi. 30 günden eskisi `zlzl_prune_sent()` ile silinir — her gün 03:17 UTC'de `zlzl-prune` cron işi çalıştırır. |
+| `zlzl_feed` | Tek satır: son 24 saatin birleştirilmiş depremleri. Her dispatch turu yazar, uygulamanın canlı veri kaynağı budur. Herkese açık veri olduğu için `feed` işlemi yetki istemez. |
 | `zlzl_config` | VAPID anahtar çifti ve gönderim sırrı. RLS ile anon/authenticated erişimi tamamen kapalı; yalnızca service_role okur. |
 
-Üç tabloda da RLS açık ve hiçbir politika tanımlı değil — yani edge function
+Tüm tablolarda RLS açık ve hiçbir politika tanımlı değil — yani edge function
 dışından kimse okuyamaz. Push uçları kişisel veri sayılır, bu yüzden dışarı açık değildir.
 
 ## Doğrulama

@@ -30,6 +30,7 @@ export const state = {
   /* --- veri katmani --- */
   sources: {},
   updated: null,
+  liveUpdated: null,
 };
 
 export const settings = {

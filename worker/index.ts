@@ -8,6 +8,7 @@
  *       update      — yalnizca kurallari gunceller
  *       unsubscribe — kaydi siler
  *       test        — o cihaza deneme bildirimi gonderir
+ *       feed (GET)  — son 24 saatin depremleri; uygulamanin canli veri kaynagi
  *
  *  B) Zamanlanmis is (pg_cron -> pg_net, x-zlzl-secret basligiyla)
  *       dispatch    — yeni depremleri bulur, kurallara uyan cihazlara gonderir
@@ -28,10 +29,16 @@ const LOCAL_MIN_MAG = 3.0;
 /** Gondericinin geriye bakacagi pencere. Cron 5 dakikada bir kosar; pay birakiyoruz. */
 const LOOKBACK_MIN = 90;
 
+/**
+ * Uygulamaya verilen canli pencere. data/latest.json'u yazan GitHub Actions
+ * cron'u pratikte 3-7 saatte bir calisiyor; bu bosluk her zaman kapansin.
+ */
+const FEED_HOURS = 24;
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'content-type, x-zlzl-secret',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 const json = (body: unknown, status = 200) =>
@@ -134,11 +141,22 @@ function payloadFor(q: Quake, reason: string, sub: Sub) {
 
 async function dispatch(config: Config) {
   const vapid = vapidFrom(config);
-  const { quakes, errors } = await fetchQuakes(6);
+  const { quakes, errors } = await fetchQuakes(FEED_HOURS);
 
   if (!quakes.length) {
     return { ok: false, reason: 'kaynaklara ulaşılamadı', errors };
   }
+
+  // Uygulamanin okudugu canli veriyi tazele. Kandilli listesi gunlerce
+  // geriye gidiyor; pencereyi burada kirpiyoruz ki yanit kucuk kalsin.
+  const feedCutoff = Date.now() - FEED_HOURS * 3600_000;
+  const { error: feedErr } = await admin.from('zlzl_feed').upsert({
+    id: 1,
+    quakes: quakes.filter((q) => +new Date(q.time) >= feedCutoff),
+    errors,
+    updated_at: new Date().toISOString(),
+  });
+  if (feedErr) console.error('feed yazılamadı', feedErr.message);
 
   // Yalnizca yakin gecmisteki depremler. Yoksa ilk calistirmada gecmis
   // butun depremler bildirim olarak giderdi.
@@ -209,7 +227,10 @@ async function dispatch(config: Config) {
   for (const f of failed) console.error('push başarısız', f.res.status, f.res.error);
 
   await admin.from('zlzl_config').update({ last_run: new Date().toISOString() }).eq('id', 1);
-  await admin.rpc('zlzl_prune_sent').catch(() => {});
+  // rpc() bir Promise degil, yalnizca `then` tasiyor; `.catch` zinciri
+  // TypeError firlatip turu 500 ile bitiriyordu. Hata `error` alaninda doner.
+  const { error: pruneErr } = await admin.rpc('zlzl_prune_sent');
+  if (pruneErr) console.error('zlzl_prune_sent', pruneErr.message);
 
   return {
     ok: true,
@@ -252,9 +273,47 @@ function sanitizeRules(rules: Rules = {}) {
   };
 }
 
+/**
+ * Uygulamanin canli veri kaynagi. GET oldugu ve ozel baslik tasimadigi icin
+ * tarayici on istek (preflight) atmaz. Veri en fazla 5 dakikalik oldugundan
+ * kisa bir sure onbelleklenebilir.
+ */
+async function feed(): Promise<Response> {
+  const { data, error } = await admin
+    .from('zlzl_feed')
+    .select('quakes, errors, updated_at')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  return new Response(JSON.stringify({
+    updated: data?.updated_at ?? null,
+    quakes: data?.quakes ?? [],
+    errors: data?.errors ?? [],
+  }), {
+    headers: {
+      ...CORS,
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=30',
+    },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  if (req.method !== 'POST') return json({ error: 'yalnızca POST' }, 405);
+
+  if (req.method === 'GET') {
+    if (new URL(req.url).searchParams.get('action') !== 'feed') {
+      return json({ error: 'bilinmeyen işlem' }, 400);
+    }
+    try {
+      return await feed();
+    } catch (err) {
+      console.error(err);
+      return json({ error: String((err as Error).message ?? err) }, 500);
+    }
+  }
+
+  if (req.method !== 'POST') return json({ error: 'yalnızca GET veya POST' }, 405);
 
   try {
     const config = await loadConfig();

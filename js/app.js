@@ -91,9 +91,8 @@ function renderSources() {
   const box = $('#srcStatus');
   box.textContent = '';
   const labels = {
-    repo: 'Depo verisi (GitHub)',
-    afad: 'AFAD canlı ucu',
-    koeri: 'Kandilli aynası',
+    repo: 'Depo verisi (son 30 gün)',
+    live: 'Canlı akış (son 24 saat)',
   };
 
   for (const [key, label] of Object.entries(labels)) {
@@ -107,8 +106,13 @@ function renderSources() {
     box.append(row);
   }
 
-  if (state.updated) {
-    const row = el('div', 'srcline', `Depo verisi güncellendi: ${fmtFull.format(new Date(state.updated))}`);
+  const stamps = [
+    ['Depo verisi güncellendi', state.updated],
+    ['Canlı akış güncellendi', state.liveUpdated],
+  ];
+  for (const [label, at] of stamps) {
+    if (!at) continue;
+    const row = el('div', 'srcline', `${label}: ${fmtFull.format(new Date(at))}`);
     row.style.color = 'var(--fg-mute)';
     box.append(row);
   }
@@ -138,6 +142,7 @@ async function refresh({ quiet = false } = {}) {
 
   state.quakes = result.quakes;
   state.updated = result.updated;
+  state.liveUpdated = result.liveUpdated;
   state.firstLoadDone = true;
 
   render();
