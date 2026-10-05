@@ -114,12 +114,13 @@ index.html                        işaretleme ve stiller
 js/config.js                      sabitler (renkler, eşikler, push ucu, il listesi)
 js/util.js                        genel yardımcılar (zaman, mesafe, depo, toast)
 js/state.js                       paylaşılan durum ve modüller arası olay yolu
-js/data.js                        üç kaynağı deneyip birleştiren veri katmanı
+js/data.js                        canlı akış + depo verisini birleştiren veri katmanı
 js/map.js                         Leaflet haritası, işaretçiler, ısı haritası, fay katmanı
 js/list.js                        filtreleme ve deprem listesi
 js/analysis.js                    istatistik kartları ve SVG grafikler
 js/notify.js                      yerel uyarı + push aboneliği
 js/home.js                        özet ekranı
+js/safearea.js                    iOS alt menü dolgusu (güvenli alan ölçümü)
 js/detail.js                      deprem ayrıntı sayfası
 js/app.js                         ekran yönlendirmesi ve tüm arayüz olayları
 sw.js                             service worker — önbellek + push alıcısı
@@ -147,6 +148,7 @@ Modüller birbirini doğrudan çağırmak yerine `state.js` üzerindeki olay yol
 
 ```bash
 node worker/webpush.test.mjs   # push şifrelemesi ve VAPID imzası
+node js/safearea.test.mjs      # alt menü dolgu kararı
 ```
 
 ## Uyarı
