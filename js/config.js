@@ -10,7 +10,7 @@
  * bilmeden tahmin yurutmek zorunda kaliyoruz. Surum gorunur olunca bu
  * belirsizlik ortadan kalkiyor.
  */
-export const APP_VERSION = '1.1.9';
+export const APP_VERSION = '1.1.10';
 
 /**
  * iPhone uygulamasi (Capacitor kabugu, C:\mac\zelzele) icinde miyiz.

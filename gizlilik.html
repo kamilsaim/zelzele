@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gizlilik Politikası — Zelzele</title>
+<meta name="description" content="Zelzele deprem haritasının gizlilik politikası: hesap yok, reklam ve takip yok; bildirim için yalnızca cihaz kaydı ve bildirim kuralları tutulur.">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<style>
+  :root{
+    --bg:#0b1120; --panel:#111a2e; --line:#243252;
+    --fg:#e8eefc; --fg-dim:#9fb0d0; --accent:#38bdf8;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f2f5fb; --panel:#ffffff; --line:#dbe3f2; --fg:#0f1a2e; --fg-dim:#4a5a78; --accent:#0369a1; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:32px 20px 64px; background:var(--bg); color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    font-size:16px; line-height:1.65; -webkit-text-size-adjust:100%;
+  }
+  main{max-width:720px; margin:0 auto}
+  header{text-align:center; margin-bottom:36px}
+  header img{width:72px; height:72px; border-radius:16px}
+  h1{font-size:26px; margin:16px 0 6px}
+  .ust{color:var(--fg-dim); font-size:14px; margin:0}
+  h2{font-size:18px; margin:34px 0 10px; color:var(--accent)}
+  ul{padding-left:20px; margin:10px 0}
+  li{margin:6px 0}
+  .ozet{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin:28px 0}
+  .ozet p{margin:0; font-size:17px}
+  table{width:100%; border-collapse:collapse; font-size:15px; margin:12px 0}
+  th,td{text-align:left; vertical-align:top; padding:8px 10px; border-bottom:1px solid var(--line)}
+  th{color:var(--fg-dim); font-weight:600}
+  code{font-size:.92em}
+  a{color:var(--accent)}
+  footer{margin-top:48px; padding-top:20px; border-top:1px solid var(--line); color:var(--fg-dim); font-size:14px; text-align:center}
+  @media (max-width:480px){ body{padding:24px 16px 48px} h1{font-size:22px} th,td{padding:7px 6px} }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <img src="icons/icon-192.png" alt="Zelzele">
+  <h1>Gizlilik Politikası</h1>
+  <p class="ust">Zelzele — Türkiye Deprem Haritası · Son güncelleme: 9 Ekim 2026</p>
+</header>
+
+<div class="ozet">
+  <p><strong>Zelzele'de hesap, reklam, analitik ve takip yoktur.</strong>
+  Uygulamayı kullanmak için hiçbir kişisel bilgi vermeniz gerekmez. Sunucuya bilgi
+  yalnızca <em>arka plan bildirimini</em> açarsanız gider; o da bildirimi
+  gönderebilmek için gereken kadardır ve bildirimi kapattığınızda silinir.</p>
+</div>
+
+<h2>Cihazınızda kalan bilgiler</h2>
+<p>Şunlar yalnızca telefonunuzun ya da tarayıcınızın kendi deposunda tutulur ve
+bildirim kapalıyken hiçbir yere gönderilmez:</p>
+<ul>
+  <li>Konumunuz (izin verdiyseniz) — depremlerin size uzaklığını hesaplamak için</li>
+  <li>Takip ettiğiniz şehirler, filtreler, tema ve uyarı ayarlarınız</li>
+  <li>Rastgele üretilmiş bir cihaz kimliği (adınız, telefon numaranız ya da
+      reklam kimliğinizle hiçbir bağı yoktur)</li>
+</ul>
+<p>Uzaklık hesabı telefonun içinde yapılır. Uygulamayı kaldırdığınızda bu bilgiler
+cihazınızdan silinir.</p>
+
+<h2>Arka plan bildirimi açıksa sunucuda tutulanlar</h2>
+<p>Uygulama kapalıyken deprem bildirimi alabilmeniz için cihazınız bildirim
+sunucusuna kaydedilir. Sunucu yalnızca şunları saklar:</p>
+<table>
+  <tr><th>Bilgi</th><th>Neden</th></tr>
+  <tr><td>Bildirim adresi — tarayıcıda Web Push aboneliği, iPhone uygulamasında
+      Apple'ın verdiği cihaz jetonu</td><td>Bildirimi cihazınıza ulaştırmak</td></tr>
+  <tr><td>Rastgele cihaz kimliği</td><td>Ayarlarınızı yalnızca sizin cihazınızın değiştirebilmesi</td></tr>
+  <tr><td>Bildirim kurallarınız: büyüklük eşiği, yarıçap, takip ettiğiniz şehirler</td>
+      <td>Hangi depremin size bildirileceğine karar vermek</td></tr>
+  <tr><td>Yaklaşık konum (yaklaşık 1 km'ye yuvarlanmış; yalnızca konum izni verdiyseniz)</td>
+      <td>"Yakınımdaki depremler" kuralı ve bildirimdeki uzaklık</td></tr>
+  <tr><td>Hangi depremin cihazınıza gönderildiği</td><td>Aynı bildirimin tekrar gitmemesi; 30 gün sonra silinir</td></tr>
+</table>
+<p>Bu bilgiler bir kişiye bağlanmaz; ad, e-posta veya telefon numarası istenmez.
+Arka plan bildirimini kapattığınızda kaydınız sunucudan hemen silinir. Uygulamayı
+kaldırdığınızda ya da bildirim iznini geri aldığınızda kayıt, bir sonraki gönderim
+denemesinde bildirim servisinin "artık geçersiz" yanıtıyla kendiliğinden silinir.
+Bilgiler satılmaz, paylaşılmaz, reklam veya profil oluşturmak için kullanılmaz.</p>
+
+<h2>Dışarıya bağlanılan servisler</h2>
+<ul>
+  <li><strong>Supabase</strong> — deprem verisinin canlı akışı ve bildirim sunucusu
+      (yukarıdaki kayıt burada durur).</li>
+  <li><strong>Apple Anında Bildirim Servisi (APNs)</strong> ve tarayıcınızın push servisi
+      (Google, Mozilla, Apple) — bildirimi cihaza taşır.</li>
+  <li><strong>GitHub Pages</strong> — uygulamanın kendisi ve son 30 günün deprem verisi.</li>
+  <li><strong>CARTO / OpenStreetMap</strong> — harita görüntüleri; <strong>unpkg.com</strong> —
+      harita kütüphanesi.</li>
+</ul>
+<p>Deprem verisini AFAD ve Kandilli Rasathanesi'nden sunucumuz okur; cihazınız bu
+kurumlara bağlanmaz. Bu servisler, internetteki her istekte olduğu gibi IP adresinizi
+görür ve kendi gizlilik politikalarına tabidir; onlara bizim tarafımızdan ek bir bilgi
+gönderilmez.</p>
+
+<h2>İzinler</h2>
+<ul>
+  <li><strong>Konum</strong> — isteğe bağlı. Vermezseniz uzaklık ve "yakınımdaki depremler"
+      dışında her şey çalışır; şehir takibiyle bildirim almaya devam edebilirsiniz.</li>
+  <li><strong>Bildirim</strong> — isteğe bağlı. Yalnızca arka plan bildirimini açtığınızda istenir.</li>
+</ul>
+
+<h2>Çocuklar</h2>
+<p>Zelzele hiçbir yaş grubundan bilerek kişisel veri toplamaz.</p>
+
+<h2>Değişiklikler</h2>
+<p>Bu politika değişirse bu sayfa güncellenir ve yukarıdaki tarih değiştirilir.</p>
+
+<h2>İletişim</h2>
+<p>Soru ve talepleriniz için (sunucudaki kaydınızın silinmesi dahil):
+<a href="mailto:saimkamil@gmail.com">saimkamil@gmail.com</a></p>
+
+<footer>
+  <a href="./">Uygulamaya dön</a> ·
+  <a href="https://github.com/kamilsaim/zelzele">Kaynak kodu</a>
+</footer>
+
+</main>
+</body>
+</html>

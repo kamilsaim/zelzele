@@ -162,8 +162,10 @@ export function pushRules() {
   return {
     min_mag: settings.pushMag,
     max_km: state.me ? settings.pushKm : 0,
-    lat: state.me?.lat ?? null,
-    lon: state.me?.lon ?? null,
+    // Sunucuya yalnizca ~1 km hassasiyet gider (gizlilik.html'de boyle beyan
+    // edildi); en kucuk bildirim yaricapi onlarca km oldugu icin fark etmez.
+    lat: state.me ? Math.round(state.me.lat * 100) / 100 : null,
+    lon: state.me ? Math.round(state.me.lon * 100) / 100 : null,
     cities: settings.pushCities ? state.cities : [],
   };
 }
