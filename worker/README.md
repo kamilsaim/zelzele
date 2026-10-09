@@ -40,6 +40,25 @@ Yakınlık ve şehir kurallarının 3.0 alt sınırı `index.ts` içindeki `LOCA
 sabitinden gelir. Bu sınır olmasa kullanıcı günde onlarca 1.5'lik sarsıntı bildirimi
 alır ve bildirimleri komple kapatır.
 
+## iPhone uygulaması (APNs)
+
+iOS uygulaması (Capacitor kabuğu, Mac klasörü `C:\mac\zelzele`) WKWebView'dir; orada
+service worker push yoktur. Uygulama `@capacitor/push-notifications` ile APNs jetonu alır ve
+`subscribe` işlemine `subscription` yerine `apns_token` gönderir. Kayıt aynı `zlzl_subs`
+tablosuna `endpoint = "apns:<jeton>"` olarak düşer (`p256dh`/`auth` boş). Böylece kurallar,
+`zlzl_sent`, `update` / `unsubscribe` / `test` hiç değişmeden çalışır; `index.ts` içindeki
+`deliver` uca bakıp Web Push ya da `apns.ts`'i seçer.
+
+- Anahtar: Team Scoped APNs anahtarı (Key ID `7V2L7K74PL`, Türbedar'la ortak). Ayarlar VAPID gibi
+  `zlzl_config`'te: `apns_key_p8`, `apns_key_id`, `apns_team_id`, `apns_topic` (`com.kamilsaim.zelzele`).
+  Anahtarın yazılması: `C:/apk/apple-anahtar/zelzele/OKU-BENI.md`.
+- Sağlayıcı JWT'si `apns_jwt` / `apns_jwt_at` sütunlarında 50 dk önbelleklenir (Apple 20 dk'dan
+  sık yenilemeyi 429 ile cezalandırır).
+- Önce `api.push.apple.com`; `BadDeviceToken` gelirse sandbox (Xcode'dan kurulan sürüm). İki ortamda
+  da `BadDeviceToken` ya da 410 → kayıt silinir.
+- Mac'siz doğrulama: sahte jetonla (`'ab'` × 32) `subscribe` + `test` → yanıt `BadDeviceToken` ise
+  anahtar doğru (`InvalidProviderToken` = anahtar/Key ID yanlış). Sonra `unsubscribe`.
+
 ## Tablolar
 
 | Tablo | İşi |

@@ -148,6 +148,7 @@ Modüller birbirini doğrudan çağırmak yerine `state.js` üzerindeki olay yol
 
 ```bash
 node worker/webpush.test.mjs   # push şifrelemesi ve VAPID imzası
+node worker/apns.test.mjs      # iPhone uygulaması: APNs JWT'si, sandbox geçişi, ölü jeton
 node js/safearea.test.mjs      # alt menü dolgu kararı
 ```
 

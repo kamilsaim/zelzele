@@ -4,7 +4,7 @@
  */
 
 import { $, $$, el, toast, ago, fmtFull, distKm, store } from './util.js';
-import { REFRESH_MS, DESKTOP_MIN, PROVINCES, APP_VERSION } from './config.js';
+import { REFRESH_MS, DESKTOP_MIN, PROVINCES, APP_VERSION, IOS_APP } from './config.js';
 import { state, settings, setSetting, setFilter, emit, on } from './state.js';
 import { fetchAll } from './data.js';
 import {
@@ -18,7 +18,7 @@ import { showDetail, hideDetail, initDetail } from './detail.js';
 import { initSafeArea, tuneSafeArea } from './safearea.js';
 import {
   alertNew, beep, ensurePermission, subscribePush, unsubscribePush,
-  syncPushRules, sendTestPush, pushBlocker, pushSupported,
+  syncPushRules, sendTestPush, pushBlocker, pushSupported, initNativePush,
 } from './notify.js';
 
 /* ======================================================================
@@ -565,7 +565,16 @@ function wireEvents() {
   });
 }
 
+/** Bildirime dokunulunca: deprem henuz yuklenmediyse once veriyi getir */
+async function openFromPush(id) {
+  if (!state.quakes.some((q) => q.id === id)) await refresh({ quiet: true });
+  emit('quake:detail', id);
+}
+
 function start() {
+  // iPhone uygulamasinda CSS, web'e ozgu bolumleri gizleyebilsin
+  if (IOS_APP) document.documentElement.classList.add('ios-app');
+
   // Once olcum: menu yuksekligi bunun uzerine oturuyor
   initSafeArea();
   initMap();
@@ -600,7 +609,10 @@ function start() {
     if (screen === 'home') renderHome();
   }, 60000);
 
-  if ('serviceWorker' in navigator) {
+  // iPhone uygulamasi: push APNs ile gelir, service worker kullanilmaz
+  if (IOS_APP) initNativePush(openFromPush);
+
+  if ('serviceWorker' in navigator && !IOS_APP) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
     navigator.serviceWorker.addEventListener('message', (e) => {
       // Bildirime tiklaninca ilgili depreme git

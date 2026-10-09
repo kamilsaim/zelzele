@@ -10,10 +10,14 @@
  *    bilgisi sunucuya kaydedilir, depremi sunucu tespit edip gonderir.
  *    Android/masaustunde dogrudan, iOS'ta yalnizca ana ekrana eklenmis
  *    uygulamada calisir (Apple sarti).
+ *
+ *  - **iPhone uygulamasi** (IOS_APP): Web Push yok; Capacitor'in
+ *    PushNotifications eklentisiyle APNs jetonu alinir ve sunucuya
+ *    `apns:<jeton>` ucu olarak kaydedilir. Kurallar ve islemler ayni.
  */
 
 import { toast, distKm, fmtTime, b64urlToBytes, store } from './util.js';
-import { PUSH } from './config.js';
+import { PUSH, IOS_APP } from './config.js';
 import { state, settings } from './state.js';
 
 /* ------------------------------------------------------------ yerel uyari */
@@ -78,6 +82,8 @@ export function alertNew(fresh) {
 
 /** @returns {boolean} izin verildi mi */
 export async function ensurePermission() {
+  // Uygulama icinde Notification API yok; ekrandaki uyari ve ses yine calisir
+  if (IOS_APP && !('Notification' in window)) return true;
   if (!('Notification' in window)) {
     toast('Bu tarayıcı bildirim desteklemiyor. Uyarılar yine de ekranda görünür.');
     return false;
@@ -91,6 +97,55 @@ export async function ensurePermission() {
 }
 
 /* ----------------------------------------------------------------- push */
+
+const APNS_PREFIX = 'apns:';
+
+/** iPhone uygulamasinda Capacitor'in push eklentisi; tarayicida undefined */
+const nativePush = () => (IOS_APP ? window.Capacitor?.Plugins?.PushNotifications : undefined);
+
+/** iOS bildirim izni (sistem penceresi). @returns {boolean} verildi mi */
+async function nativePermission() {
+  const P = nativePush();
+  let { receive } = await P.checkPermissions();
+  if (receive !== 'granted' && receive !== 'denied') {
+    ({ receive } = await P.requestPermissions());
+  }
+  if (receive === 'denied') {
+    toast("Bildirim izni kapalı. iPhone Ayarlar → Zelzele → Bildirimler'den açabilirsin.", true);
+  }
+  return receive === 'granted';
+}
+
+/** APNs'e kaydolup cihaz jetonunu (onaltilik) alir */
+async function apnsToken() {
+  const P = nativePush();
+  let finish;
+  const result = new Promise((resolve, reject) => { finish = { resolve, reject }; });
+  // Dinleyiciler register()'dan once kurulmali, yoksa yanit kacabilir
+  const handles = await Promise.all([
+    P.addListener('registration', (t) => finish.resolve(String(t.value).toLowerCase())),
+    P.addListener('registrationError', (e) => finish.reject(new Error(e?.error || 'APNs kaydı başarısız'))),
+  ]);
+  const timer = setTimeout(() => finish.reject(new Error('APNs yanıt vermedi')), 20000);
+  try {
+    await P.register();
+    return await result;
+  } finally {
+    clearTimeout(timer);
+    for (const h of handles) h.remove();
+  }
+}
+
+/** Bu cihazin sunucudaki ucu; kayitli degilse null */
+async function currentEndpoint() {
+  if (IOS_APP) {
+    const token = store.get('apnsToken', null);
+    return token ? APNS_PREFIX + token : null;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  return sub?.endpoint ?? null;
+}
 
 /** Cihazi ayirt eden kalici kimlik — kurallari guncellerken kullanilir */
 function deviceId() {
@@ -125,6 +180,7 @@ async function callPush(action, payload) {
 }
 
 export function pushSupported() {
+  if (IOS_APP) return !!nativePush();
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
@@ -133,6 +189,7 @@ export function pushSupported() {
  * @returns {string|null} engel aciklamasi, engel yoksa null
  */
 export function pushBlocker() {
+  if (IOS_APP) return nativePush() ? null : 'Bu sürümde bildirim desteği yok; uygulamayı güncelle.';
   if (!pushSupported()) return 'Bu tarayıcı arka plan bildirimini desteklemiyor.';
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -150,6 +207,15 @@ export function pushBlocker() {
 export async function subscribePush() {
   const blocker = pushBlocker();
   if (blocker) { toast(blocker, true); return false; }
+
+  if (IOS_APP) {
+    if (!(await nativePermission())) return false;
+    const token = await apnsToken();
+    await callPush('subscribe', { apns_token: token, rules: pushRules() });
+    store.set('apnsToken', token);
+    return true;
+  }
+
   if (!(await ensurePermission())) { toast('Bildirim izni verilmedi.'); return false; }
 
   const reg = await navigator.serviceWorker.ready;
@@ -178,16 +244,21 @@ export async function subscribePush() {
 export async function syncPushRules() {
   if (!settings.push || !pushSupported()) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if (!sub) return;
-    await callPush('update', { endpoint: sub.endpoint, rules: pushRules() });
+    const endpoint = await currentEndpoint();
+    if (!endpoint) return;
+    await callPush('update', { endpoint, rules: pushRules() });
   } catch (err) {
     console.warn('push kuralları güncellenemedi:', err.message);
   }
 }
 
 export async function unsubscribePush() {
+  if (IOS_APP) {
+    const endpoint = await currentEndpoint();
+    if (endpoint) await callPush('unsubscribe', { endpoint }).catch(() => {});
+    store.set('apnsToken', null);
+    return;
+  }
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
@@ -202,8 +273,37 @@ export async function unsubscribePush() {
 
 /** Sunucudan bu cihaza deneme bildirimi ister */
 export async function sendTestPush() {
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.getSubscription();
-  if (!sub) throw new Error('Bu cihaz henüz kayıtlı değil.');
-  return callPush('test', { endpoint: sub.endpoint });
+  const endpoint = await currentEndpoint();
+  if (!endpoint) throw new Error('Bu cihaz henüz kayıtlı değil.');
+  return callPush('test', { endpoint });
+}
+
+/**
+ * iPhone uygulamasi acilisinda bir kez cagrilir.
+ *
+ *  - Bildirime dokunulunca `onOpen(depremId)` cagrilir. Capacitor bu olayi
+ *    dinleyici eklenene kadar saklar; uygulama bildirimle soguk acilsa da gelir.
+ *  - Apple jetonu zaman zaman degistirir; her acilista yeniden alinir ve
+ *    degismisse sunucudaki kayit tazelenir (eskisi APNs'ten 410 alip silinir).
+ */
+export async function initNativePush(onOpen) {
+  const P = nativePush();
+  if (!P) return;
+
+  P.addListener('pushNotificationActionPerformed', (action) => {
+    const id = action?.notification?.data?.id;
+    if (id && id !== 'test') onOpen(String(id));
+  });
+
+  if (!settings.push) return;
+  try {
+    if ((await P.checkPermissions()).receive !== 'granted') return;
+    const token = await apnsToken();
+    if (token !== store.get('apnsToken', null)) {
+      await callPush('subscribe', { apns_token: token, rules: pushRules() });
+      store.set('apnsToken', token);
+    }
+  } catch (err) {
+    console.warn('APNs jetonu tazelenemedi:', err.message);
+  }
 }

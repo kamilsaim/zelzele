@@ -10,7 +10,14 @@
  * bilmeden tahmin yurutmek zorunda kaliyoruz. Surum gorunur olunca bu
  * belirsizlik ortadan kalkiyor.
  */
-export const APP_VERSION = '1.1.8';
+export const APP_VERSION = '1.1.9';
+
+/**
+ * iPhone uygulamasi (Capacitor kabugu, C:\mac\zelzele) icinde miyiz.
+ * Kabuk siteyi WKWebView'de acar: service worker ve Web Push yok, bildirim
+ * APNs ile gelir (notify.js). Tarayicida ve Android TWA'da her zaman false.
+ */
+export const IOS_APP = window.Capacitor?.getPlatform?.() === 'ios';
 
 /** Turkiye ve yakin cevresi — harita acilisinda ve veri filtresinde kullanilir */
 export const TR_BOUNDS = [[35.5, 25.2], [42.5, 45.2]];

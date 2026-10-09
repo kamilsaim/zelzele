@@ -13,6 +13,9 @@
  *  B) Zamanlanmis is (pg_cron -> pg_net, x-zlzl-secret basligiyla)
  *       dispatch    — yeni depremleri bulur, kurallara uyan cihazlara gonderir
  *
+ * Iki tur abone var: tarayici/Android (Web Push, VAPID) ve iPhone uygulamasi
+ * (APNs, `endpoint = "apns:<jeton>"`). Hangisine nasil gidecegine `deliver` karar verir.
+ *
  * Kurallarin hangisi tutarsa bildirim gider (VEYA mantigi):
  *   1. Buyukluk >= min_mag                      (Turkiye geneli)
  *   2. Mesafe <= max_km ve buyukluk >= 3.0      (yakinimdaki)
@@ -21,6 +24,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendPush, type VapidKeys } from './webpush.ts';
+import { sendApns, apnsProviderToken, APNS_PREFIX, type ApnsKeys } from './apns.ts';
 import { fetchQuakes, distKm, type Quake } from './quakes.ts';
 
 /** Yakinlik ve sehir kurallarinin alt siniri — bunun altinda bildirim gitmez */
@@ -57,12 +61,18 @@ interface Config {
   vapid_private: string;
   subject: string;
   dispatch_secret: string;
+  apns_key_p8: string | null;
+  apns_key_id: string | null;
+  apns_team_id: string | null;
+  apns_topic: string | null;
+  apns_jwt: string | null;
+  apns_jwt_at: string | null;
 }
 
 async function loadConfig(): Promise<Config> {
   const { data, error } = await admin
     .from('zlzl_config')
-    .select('vapid_public, vapid_private, subject, dispatch_secret')
+    .select('vapid_public, vapid_private, subject, dispatch_secret, apns_key_p8, apns_key_id, apns_team_id, apns_topic, apns_jwt, apns_jwt_at')
     .eq('id', 1)
     .single();
   if (error || !data) throw new Error('zlzl_config okunamadı');
@@ -74,6 +84,77 @@ const vapidFrom = (c: Config): VapidKeys => ({
   privateKey: c.vapid_private,
   subject: c.subject,
 });
+
+function apnsFrom(c: Config): ApnsKeys | null {
+  if (!c.apns_key_p8 || !c.apns_key_id || !c.apns_team_id || !c.apns_topic) return null;
+  return { p8: c.apns_key_p8, keyId: c.apns_key_id, teamId: c.apns_team_id, topic: c.apns_topic };
+}
+
+/**
+ * Apple saglayici jetonu en fazla 60 dk gecerli ve 20 dk'dan sik yenilenirse
+ * 429 TooManyProviderTokenUpdates doner. Edge ornekleri kisa omurlu oldugundan
+ * jeton zlzl_config'te 50 dk saklanir.
+ */
+async function apnsJwt(c: Config, force = false): Promise<string> {
+  const keys = apnsFrom(c);
+  if (!keys) throw new Error('APNs ayarı yok (zlzl_config.apns_*)');
+  if (!force && c.apns_jwt && c.apns_jwt_at &&
+      Date.now() - new Date(c.apns_jwt_at).getTime() < 50 * 60_000) {
+    return c.apns_jwt;
+  }
+  const jwt = await apnsProviderToken(keys);
+  const at = new Date().toISOString();
+  await admin.from('zlzl_config').update({ apns_jwt: jwt, apns_jwt_at: at }).eq('id', 1);
+  c.apns_jwt = jwt;
+  c.apns_jwt_at = at;
+  return jwt;
+}
+
+/* ====================================================================
+   Teslim: Web Push ya da APNs
+   ==================================================================== */
+
+interface Delivery { ok: boolean; status: number; gone: boolean; error?: string }
+
+/**
+ * Ayni turda paralel APNs gonderimleri tek saglayici jetonunu paylassin;
+ * Apple reddederse de yalnizca bir kez yenilensin (sik yenileme 429 alir).
+ */
+let jwtPending: Promise<string> | null = null;
+let refreshPending: Promise<string> | null = null;
+
+async function deliver(
+  sub: { endpoint: string; p256dh: string; auth: string },
+  payload: string,
+  config: Config,
+  opts: { urgency?: 'normal' | 'high'; collapseId?: string } = {},
+): Promise<Delivery> {
+  if (!sub.endpoint.startsWith(APNS_PREFIX)) {
+    return sendPush(
+      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+      payload, vapidFrom(config), { urgency: opts.urgency },
+    );
+  }
+
+  const keys = apnsFrom(config);
+  if (!keys) return { ok: false, status: 0, gone: false, error: 'APNs ayarı yok' };
+  const token = sub.endpoint.slice(APNS_PREFIX.length);
+
+  try {
+    jwtPending ??= apnsJwt(config).finally(() => { jwtPending = null; });
+    const used = await jwtPending;
+    let res = await sendApns(token, payload, keys, used, opts);
+    if (res.badProvider) {
+      const fresh = config.apns_jwt && config.apns_jwt !== used
+        ? config.apns_jwt
+        : await (refreshPending ??= apnsJwt(config, true).finally(() => { refreshPending = null; }));
+      res = await sendApns(token, payload, keys, fresh, opts);
+    }
+    return res;
+  } catch (err) {
+    return { ok: false, status: 0, gone: false, error: String((err as Error).message || err) };
+  }
+}
 
 /* ====================================================================
    Bildirim metni
@@ -140,7 +221,6 @@ function payloadFor(q: Quake, reason: string, sub: Sub) {
    ==================================================================== */
 
 async function dispatch(config: Config) {
-  const vapid = vapidFrom(config);
   const { quakes, errors } = await fetchQuakes(FEED_HOURS);
 
   if (!quakes.length) {
@@ -197,12 +277,10 @@ async function dispatch(config: Config) {
   }
 
   const results = await Promise.all(jobs.map(async ({ sub, quake, reason }) => {
-    const res = await sendPush(
-      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      payloadFor(quake, reason, sub),
-      vapid,
-      { urgency: quake.mag >= 5 ? 'high' : 'normal' },
-    );
+    const res = await deliver(sub, payloadFor(quake, reason, sub), config, {
+      urgency: quake.mag >= 5 ? 'high' : 'normal',
+      collapseId: quake.id,
+    });
     return { sub, quake, res };
   }));
 
@@ -329,6 +407,23 @@ Deno.serve(async (req) => {
     }
 
     /* ------------------------------------------------------- tarayici */
+    if (action === 'subscribe' && body.apns_token) {
+      // iPhone uygulamasi: APNs cihaz jetonu (onaltilik)
+      const token = String(body.apns_token);
+      if (!/^[0-9a-f]{64,200}$/i.test(token)) return json({ error: 'geçersiz jeton' }, 400);
+
+      const { error } = await admin.from('zlzl_subs').upsert({
+        endpoint: APNS_PREFIX + token.toLowerCase(),
+        p256dh: '',
+        auth: '',
+        device_id: body.device_id,
+        ...sanitizeRules(body.rules),
+      }, { onConflict: 'endpoint' });
+      if (error) throw error;
+
+      return json({ ok: true });
+    }
+
     if (action === 'subscribe') {
       const sub = body.subscription;
       if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) {
@@ -377,15 +472,15 @@ Deno.serve(async (req) => {
         .single();
       if (!data) return json({ error: 'cihaz kayıtlı değil' }, 404);
 
-      const res = await sendPush(
-        { endpoint: data.endpoint, keys: { p256dh: data.p256dh, auth: data.auth } },
+      const res = await deliver(
+        data,
         JSON.stringify({
           title: 'Zelzele bildirimleri çalışıyor',
           body: 'Bu bir deneme bildirimi. Gerçek bir deprem kaydı değildir.',
           id: 'test',
           mag: 0,
         }),
-        vapidFrom(config),
+        config,
       );
       if (!res.ok) return json({ error: `push servisi ${res.status}: ${res.error}` }, 502);
       return json({ ok: true });
