@@ -74,6 +74,10 @@ JSON ucundan ve KOERI'nin metin listesinden son 30 günü çeker, birleştirir,
 **yalnızca** böyle kurulmuş uygulamada çalışır — bu Apple'ın şartı, aşılamıyor.
 Uygulama bunu tespit edip Ayarlar sekmesinde açıklıyor.
 
+**iPhone uygulaması (App Store'a hazırlanıyor):** Capacitor kabuğu, Mac klasörü `C:\mac\zelzele`.
+Orada service worker push olmadığı için bildirim APNs ile gelir — ayrıntı
+`worker/README.md` → "iPhone uygulaması (APNs)".
+
 **Android:** Chrome'da siteyi aç → *Ana ekrana ekle* (veya Ayarlar sekmesindeki **Ekle**
 düğmesi).
 
@@ -125,9 +129,10 @@ js/detail.js                      deprem ayrıntı sayfası
 js/app.js                         ekran yönlendirmesi ve tüm arayüz olayları
 sw.js                             service worker — önbellek + push alıcısı
 manifest.json                     PWA tanımı
+gizlilik.html                     gizlilik politikası (App Store bu adresi ister)
 scripts/fetch-quakes.mjs          AFAD + KOERI çekici, bağımlılıksız Node
 scripts/serve.mjs                 geliştirme sunucusu
-worker/                           push sunucusu (Supabase Edge Function) — kendi README'si var
+worker/                           push sunucusu (Supabase Edge Function; Web Push + iPhone için APNs) — kendi README'si var
 .github/workflows/update-data.yml 30 günlük veriyi tazeleyen iş (cron */5, pratikte saatler)
 data/latest.json                  üretilen veri (workflow yazar)
 icons/                            uygulama simgesi (192 ve 512) — logo burada
