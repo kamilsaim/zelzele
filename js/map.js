@@ -10,9 +10,14 @@ import { $, el, escapeHtml, ago, fmtFull, distKm } from './util.js';
 import { TR_BOUNDS, MAG_STOPS, magColor, magRadius, RECENT_MS, DESKTOP_MIN } from './config.js';
 import { state, emit } from './state.js';
 
+// CARTO anahtarsiz istekte "API KEY REQUIRED" karosu donduruyor (Ekim 2026);
+// Esri Canvas anahtarsiz calisir. Taban + uzerine yer adlari katmani.
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas';
 const TILES = {
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  dark: [`${ESRI}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+         `${ESRI}/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`],
+  light: [`${ESRI}/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+          `${ESRI}/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}`],
 };
 
 let map = null;
@@ -53,11 +58,15 @@ export const getMap = () => map;
 
 export function setTheme(theme) {
   if (tileLayer) map.removeLayer(tileLayer);
-  tileLayer = L.tileLayer(TILES[theme], {
-    maxZoom: 18,
-    subdomains: 'abcd',
-    attribution: '&copy; OpenStreetMap, &copy; CARTO — veri: AFAD & Kandilli',
-  }).addTo(map);
+  const [base, labels] = TILES[theme];
+  const opts = { maxZoom: 18, maxNativeZoom: 16 };
+  tileLayer = L.layerGroup([
+    L.tileLayer(base, {
+      ...opts,
+      attribution: 'Harita &copy; Esri, HERE, Garmin, &copy; OpenStreetMap — veri: AFAD & Kandilli',
+    }),
+    L.tileLayer(labels, opts),
+  ]).addTo(map);
 }
 
 /* ---------------------------------------------------------------- popup */

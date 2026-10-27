@@ -9,7 +9,7 @@
  *     ilgili depremde acar.
  */
 
-const VERSION = 'v18';
+const VERSION = 'v19';
 const SHELL = `zelzele-shell-${VERSION}`;
 const DATA = `zelzele-data-${VERSION}`;
 const TILES = `zelzele-tiles-${VERSION}`;
@@ -108,7 +108,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  if (url.hostname.includes('basemaps.cartocdn.com')) {
+  if (url.hostname === 'server.arcgisonline.com') {
     e.respondWith(staleWhileRevalidate(request, TILES));
     return;
   }
